@@ -99,18 +99,18 @@ def datingClassTest():  #测试分类器准确度，采用错误率来评估
     print("the total error rate is: %f" % (errorCount / float(numTestVecs)))  #计算并打印分类器错误率
     print(errorCount)  #打印此次用于评估的测试集中，分类器预测出错次数
 
-def classifyPerson():
-    resultList = ['not at all', 'in small doses', 'in large doses']
+def classifyPerson():  #将分类器应用于网站，根据人们的喜好进行分类
+    resultList = ['not at all', 'in small doses', 'in large doses']  #描述分类结果的list
     percentTats = float(input(\
-                                  "percentage of time spent playing video games?"))
+                                  "percentage of time spent playing video games?"))  #给出提示语后,获取用户输入的特征值,回车结束输入。由于input()总是将输入作为str,故需要进行数据类型转换
     ffMiles = float(input("frequent flier miles earned per year?"))
     iceCream = float(input("liters of ice cream consumed per year?"))
-    datingDataMat, datingLabels = file2matrix('datingTestSet2.txt')
-    normMat, ranges, minVals = autoNorm(datingDataMat)
-    inArr = np.array([ffMiles, percentTats, iceCream, ])
+    datingDataMat, datingLabels = file2matrix('datingTestSet2.txt')  #从样本文件datingTestSet2.txt中获取特征值矩阵和类型标签向量
+    normMat, ranges, minVals = autoNorm(datingDataMat)  #归一化样本集的特征值矩阵
+    inArr = np.array([ffMiles, percentTats, iceCream, ])  #将用户输入的特征值格式化为可用的特征值向量，inArr
     classifierResult = classify0((inArr - \
-                                  minVals)/ranges, normMat, datingLabels, 3)
-    print("You will probably like this person: %s" % resultList[classifierResult - 1])
+                                  minVals)/ranges, normMat, datingLabels, 3)  #特征值向量inArr进行归一化(inArr - minVals)/ranges后，使用kNN算法classify0进行分类，返回最接近的标签值classifierResult，取值[1,3]
+    print("You will probably like this person: %s" % resultList[classifierResult - 1])  #打印预测结果，其中分类结果的描述根据返回值classifierResult取到resultList中对应的元素
 
 def img2vector(filename):
     returnVect = np.zeros((1, 1024))

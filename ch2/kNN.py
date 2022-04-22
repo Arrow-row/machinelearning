@@ -2,7 +2,6 @@ import numpy as np
 import operator
 
 
-
 def classify0(inX,dataSet,labels,k):
     dataSetSize=dataSet.shape[0]
     diffMat=np.tile(inX,(dataSetSize,1))-dataSet
@@ -68,3 +67,15 @@ def datingClassTest():
         if(classifierResult!=datingLabels[i]):errorCount+=1.0
     print("The total error rate is: %f" % (errorCount/float(numTestVecs)))
     print("Here in %d testdata,the errorCount is: %d" % (numTestVecs,errorCount))
+
+
+def classifyPerson():
+    resultList=['not at all','in small doses','in large doses']
+    ffMiles=float(input('frequent flier miles earned per year?'))
+    percentTags=float(input('percentage of time spent playing video games?'))
+    iceCream=float(input('liters of ice cream consumed per year?'))
+    datingDataMat,datingLabels=file2matrix('datingTestSet2.txt')
+    normMat,ranges,minVals=autoNorm(datingDataMat)
+    inArr=np.array([ffMiles,percentTags,iceCream])
+    classifierResult=classify0((inArr-minVals)/ranges,normMat,datingLabels,3)
+    print('You will probably like this person: %s' % resultList[classifierResult-1])

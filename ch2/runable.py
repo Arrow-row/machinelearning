@@ -8,7 +8,7 @@ datingTestSet.txt 中为样本数据集，前3列为样本特征，第4列为类
 第1列:每年获得的飞行常客里程数
 第2列:玩视频游戏所耗时间百分比
 第3列:每周消费的冰淇淋公升数
-第4列:类型标签，包括不喜欢、一般、很喜欢3类
+第4列:类型标签，包括不喜欢、一般、很喜欢3类,分别用数字1、2、3标识
 '''
 datingDataMat,datingLabels=kNN.file2matrix('testdemo.txt') 
 normMat,ranges,minVals=kNN.autoNorm(datingDataMat)
