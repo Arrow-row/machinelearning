@@ -13,7 +13,7 @@ Output:     the most popular class label
 '''
 import numpy as np  #numpy:科学计算包
 import operator  #operator:运算符模块
-from os import listdir
+from os import listdir  #listdir:os模块中用于处理目录的方法
 
 def classify0(inX, dataSet, labels, k):  #kNN算法实现
     '''
