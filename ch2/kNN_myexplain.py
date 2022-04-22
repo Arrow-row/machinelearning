@@ -51,8 +51,8 @@ def createDataSet():    #createDataSet()创建数据集和标签 p19
 
 def file2matrix(filename):  #处理文本文件中的数据格式，输入为文件名字符串，输出为训练样本矩阵和类标签向量
     love_dictionary = {'largeDoses':3, 'smallDoses':2, 'didntLike':1}   #定义字典，数字3的含义为largeDoses，以此类推
-    fr = open(filename)     #以只读方式打开filename文件，返回file对象fr
-    arrayOLines = fr.readlines()  #读取完文件中所有内容，返回列表arrayOLines <class 'list'>，列表元素为文件的每行内容
+    fr = open(filename)     #以只读方式打开filename文件，返回文件对象fr，可通过该对象调用文件相关函数对文件进行操作
+    arrayOLines = fr.readlines()  #读取所有行，返回列表arrayOLines <class 'list'>，列表元素为文件的每行内容
     numberOfLines = len(arrayOLines)  #得到文件行数，即arrayOLines元素个数
     returnMat = np.zeros((numberOfLines, 3))  #创建用于返回的二维矩阵returnMat,shape=(numberOfLines, 3),行数numberOfLines为文件内容行数,列数3表示一条样本中特征的数量是3。数组元素的数据类型默认为numpy.float64
     classLabelVector = []     #用于返回的类型标签向量 <class 'list'>, 其中的元素取值为数字1,2,3,表示的含义见love_dictionary 
@@ -99,7 +99,7 @@ def datingClassTest():  #测试分类器准确度，采用错误率来评估
     print("the total error rate is: %f" % (errorCount / float(numTestVecs)))  #计算并打印分类器错误率
     print(errorCount)  #打印此次用于评估的测试集中，分类器预测出错次数
 
-def classifyPerson():  #将分类器应用于网站，根据人们的喜好进行分类
+def classifyPerson():  #将分类器应用于网站，根据人们的喜好对人群进行分类
     resultList = ['not at all', 'in small doses', 'in large doses']  #描述分类结果的list
     percentTats = float(input(\
                                   "percentage of time spent playing video games?"))  #给出提示语后,获取用户输入的特征值,回车结束输入。由于input()总是将输入作为str,故需要进行数据类型转换
@@ -112,36 +112,36 @@ def classifyPerson():  #将分类器应用于网站，根据人们的喜好进�
                                   minVals)/ranges, normMat, datingLabels, 3)  #特征值向量inArr进行归一化(inArr - minVals)/ranges后，使用kNN算法classify0进行分类，返回最接近的标签值classifierResult，取值[1,3]
     print("You will probably like this person: %s" % resultList[classifierResult - 1])  #打印预测结果，其中分类结果的描述根据返回值classifierResult取到resultList中对应的元素
 
-def img2vector(filename):
-    returnVect = np.zeros((1, 1024))
-    fr = open(filename)
-    for i in range(32):
-        lineStr = fr.readline()
-        for j in range(32):
-            returnVect[0, 32*i+j] = int(lineStr[j])
-    return returnVect
+def img2vector(filename):  #32×32的二进制图像矩阵转换为1×1024的向量
+    returnVect = np.zeros((1, 1024))  #创建二维数组returnVect,shape=(1,1024)
+    fr = open(filename)  #以只读方式打开filename文件，返回文件对象fr，可通过该对象调用文件相关函数对文件进行操作
+    for i in range(32):  #循环读出文件前32行
+        lineStr = fr.readline()  #读取第i行，包括 "\n" 字符，字符串赋给lineStr
+        for j in range(32):  #循环读取第i行的前32个字符
+            returnVect[0, 32*i+j] = int(lineStr[j])  #依次将第i行的32个字符值存储在returnVect数组
+    return returnVect  #返回数组returnVect
 
-def handwritingClassTest():
+def handwritingClassTest():  #用于检测手写数字识别器执行效果的函数
     hwLabels = []
-    trainingFileList = listdir('trainingDigits')           #load the training set
-    m = len(trainingFileList)
-    trainingMat = np.zeros((m, 1024))
-    for i in range(m):
-        fileNameStr = trainingFileList[i]
-        fileStr = fileNameStr.split('.')[0]     #take off .txt
-        classNumStr = int(fileStr.split('_')[0])
-        hwLabels.append(classNumStr)
-        trainingMat[i, :] = img2vector('trainingDigits/%s' % fileNameStr)
-    testFileList = listdir('testDigits')        #iterate through the test set
-    errorCount = 0.0
-    mTest = len(testFileList)
-    for i in range(mTest):
-        fileNameStr = testFileList[i]
-        fileStr = fileNameStr.split('.')[0]     #take off .txt
-        classNumStr = int(fileStr.split('_')[0])
-        vectorUnderTest = img2vector('testDigits/%s' % fileNameStr)
-        classifierResult = classify0(vectorUnderTest, trainingMat, hwLabels, 3)
-        print("the classifier came back with: %d, the real answer is: %d" % (classifierResult, classNumStr))
+    trainingFileList = listdir('trainingDigits')  #获取训练集数据的文件名，存储于trainingFileList。os模块的listdir方法获取指定目录下的文件或文件夹的名字的列表
+    m = len(trainingFileList)  #m为训练集文件数
+    trainingMat = np.zeros((m, 1024))  #创建二维训练数据矩阵trainingMat，shape=(m,1024)
+    for i in range(m):  #获取第i个训练集文件。本循环用于从文件名解析样本标签、获取训练矩阵
+        fileNameStr = trainingFileList[i]  #fileNameStr表示样本文件名字符串。样本文件名：0_82.txt，0表示文件内是数字0的图像，82表示当前文件是数字0的第82个样本
+        fileStr = fileNameStr.split('.')[0]  #去掉'0_82.txt'中的.txt，用fileStr保存'0_82'
+        classNumStr = int(fileStr.split('_')[0])  #去掉'0_82'中的_82，将'0'转换为int型后存于classNumstr，得到当前文件的标签
+        hwLabels.append(classNumStr)  #将最终解析出的文件标签存于列表hwLabels
+        trainingMat[i, :] = img2vector('trainingDigits/%s' % fileNameStr)  #将文件内容转换为1x1024的向量后，存于训练矩阵trainingMat
+    testFileList = listdir('testDigits')        #获取测试集中文件的文件名，存储于trainingFileList（iterate through the test set）
+    errorCount = 0.0  #出错计数器
+    mTest = len(testFileList)  #mTest为测试集文件数
+    for i in range(mTest):  #获取测试集中第i个文件
+        fileNameStr = testFileList[i]  #fileNameStr表示当前文件名字符串
+        fileStr = fileNameStr.split('.')[0]     
+        classNumStr = int(fileStr.split('_')[0])  #得到当前文件的标签
+        vectorUnderTest = img2vector('testDigits/%s' % fileNameStr)  #vectorUnderTest表示当前文件内容转换为1x1024后的向量
+        classifierResult = classify0(vectorUnderTest, trainingMat, hwLabels, 3)  #调用kNN分类器对当前文件进行分类
+        print("the classifier came back with: %d, the real answer is: %d" % (classifierResult, classNumStr))  #打印分类结果与原数据标签
         if (classifierResult != classNumStr): errorCount += 1.0
     print("\nthe total number of errors is: %d" % errorCount)
-    print("\nthe total error rate is: %f" % (errorCount/float(mTest)))
+    print("\nthe total error rate is: %f" % (errorCount/float(mTest)))  #本数据集下，kNN手写数字识别器的错误率
