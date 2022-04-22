@@ -42,3 +42,29 @@ def file2matrix(filename):
             classLabelVector.append(love_dictionary.get(listFromLine[-1]))
         index+=1
     return returnMat,classLabelVector
+
+
+def autoNorm(dataSet):
+    minVals=dataSet.min(0)
+    maxVals=dataSet.max(0)
+    ranges=maxVals-minVals
+    normDataSet=np.zeros(np.shape(dataSet))
+    m=dataSet.shape[0]
+    normDataSet=dataSet-np.tile(minVals,(m,1))
+    normDataSet=normDataSet/np.tile(ranges,(m,1))
+    return normDataSet,ranges,minVals
+
+
+def datingClassTest():
+    hoRatio=0.25
+    datingDataMat,datingLabels=file2matrix('testdemo.txt')
+    normMat,ranges,minVals=autoNorm(datingDataMat)
+    m=normMat.shape[0]
+    numTestVecs=int(m*hoRatio)
+    errorCount=0.0
+    for i in range(numTestVecs):
+        classifierResult=classify0(normMat[i,:],normMat[numTestVecs:m,:],datingLabels[numTestVecs:m],3)
+        print("the result of this classifier: %d, the original label is: %d" % (classifierResult,datingLabels[i]))
+        if(classifierResult!=datingLabels[i]):errorCount+=1.0
+    print("The total error rate is: %f" % (errorCount/float(numTestVecs)))
+    print("Here in %d testdata,the errorCount is: %d" % (numTestVecs,errorCount))

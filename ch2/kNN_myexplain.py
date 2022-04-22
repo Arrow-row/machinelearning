@@ -15,10 +15,10 @@ import numpy as np  #numpy:科学计算包
 import operator  #operator:运算符模块
 from os import listdir
 
-def classify0(inX, dataSet, labels, k):  #kNN算法
+def classify0(inX, dataSet, labels, k):  #kNN算法实现
     '''
-    dataSet:类别已知的样本数据集(不带标签)，NxM，N为样本特征维度，M为数据集中样本数量
-    inX:与样本数据集作比较的输入向量，1xN，N为特征维度
+    dataSet:类别已知的样本特征值矩阵，NxM，对应的类别在向量labels中给出，N为样本特征维度，M为样本数量
+    inX:输入向量，1xN，N为特征维度，是类别未知的需要预测的特征值向量
     labels:数据集的标签，1xM
     k:在样本数据集中选取k个与输入向量最相似的数据（k须为奇数）
     '''
@@ -69,29 +69,35 @@ def file2matrix(filename):  #处理文本文件中的数据格式，输入为文
     return returnMat, classLabelVector  #本函数返回特征矩阵returnMat和类型标签向量classLabelVector
 
 
-def autoNorm(dataSet):
-    minVals = dataSet.min(0)
-    maxVals = dataSet.max(0)
-    ranges = maxVals - minVals
-    normDataSet = np.zeros(np.shape(dataSet))
-    m = dataSet.shape[0]
-    normDataSet = dataSet - np.tile(minVals, (m, 1))
-    normDataSet = normDataSet/np.tile(ranges, (m, 1))   #element wise divide
-    return normDataSet, ranges, minVals
+def autoNorm(dataSet):  #归一化特征值,将数字特征值转化为0到1的区间
 
-def datingClassTest():
-    hoRatio = 0.50      #hold out 10%
-    datingDataMat, datingLabels = file2matrix('datingTestSet2.txt')       #load data setfrom file
-    normMat, ranges, minVals = autoNorm(datingDataMat)
-    m = normMat.shape[0]
-    numTestVecs = int(m*hoRatio)
-    errorCount = 0.0
-    for i in range(numTestVecs):
-        classifierResult = classify0(normMat[i, :], normMat[numTestVecs:m, :], datingLabels[numTestVecs:m], 3)
-        print("the classifier came back with: %d, the real answer is: %d" % (classifierResult, datingLabels[i]))
-        if (classifierResult != datingLabels[i]): errorCount += 1.0
-    print("the total error rate is: %f" % (errorCount / float(numTestVecs)))
-    print(errorCount)
+    '''
+    归一化公式:
+    newValue=(oldValue-min)/(max-min)
+    min和max分别是数据集中的最小特征值和最大特征值
+    '''
+    minVals = dataSet.min(0)  #将矩阵dataSet每列中最小元素放入minVals
+    maxVals = dataSet.max(0)  #将矩阵dataSet每列中最大元素放入maxVals
+    ranges = maxVals - minVals  #获取最大值与最小值特征值的差值，公式的分母部分
+    normDataSet = np.zeros(np.shape(dataSet))  #创建存储归一化数据的矩阵normDataSet
+    m = dataSet.shape[0]  #获取dataSet行数
+    normDataSet = dataSet - np.tile(minVals, (m, 1))  #np.tile将minVals扩展成包含m个minVals的集合，再与样本集合dataSet中原数据做差，得到公式的分子部分的矩阵
+    normDataSet = normDataSet/np.tile(ranges, (m, 1))  #np.tile将ranges扩展成包含m个ranges的集合,得到公式的分母部分的矩阵;代入公式得到归一化后的特征值矩阵;这里/是矩阵对应元素相除
+    return normDataSet, ranges, minVals  #返回归一化后的特征值矩阵，差值向量，最小特征值向量
+
+def datingClassTest():  #测试分类器准确度，采用错误率来评估
+    hoRatio = 0.50      #hoRatio表示用于测试的数据占总数据的百分比
+    datingDataMat, datingLabels = file2matrix('datingTestSet2.txt')       #使用file2matrix函数，从datingTestSet2.txt文件中获取样本的特征值矩阵和标签向量
+    normMat, ranges, minVals = autoNorm(datingDataMat)  #使用autoNorm函数，获取归一化特征值矩阵，差值向量，最小特征值向量
+    m = normMat.shape[0]  #获取样本总数m
+    numTestVecs = int(m*hoRatio)  #numTestVecs为用于测试准确度的样本数，即测试集样本数
+    errorCount = 0.0  #初始化分类器出错计数器，后续每次预测出错，计数器+1
+    for i in range(numTestVecs):  #依次取出测试集中第i个样本，range(numTestVecs)表示从0计数到numTestVecs结束但不包括numTestVecs
+        classifierResult = classify0(normMat[i, :], normMat[numTestVecs:m, :], datingLabels[numTestVecs:m], 3)  #调用kNN分类器，inX:normMat中第i个行向量;dataSet:normMat中除去前numTestVecs条数据的数据集;labels:与dataSet数据对应的标签组成的向量;k:这里是样本特征数量,3;分类结果赋值给classifierResult,取值[1,3]
+        print("the classifier came back with: %d, the real answer is: %d" % (classifierResult, datingLabels[i]))  #打印分类器预测值、原数据标签值
+        if (classifierResult != datingLabels[i]): errorCount += 1.0  #若分类器预测出错，计数器errorCount+1
+    print("the total error rate is: %f" % (errorCount / float(numTestVecs)))  #计算并打印分类器错误率
+    print(errorCount)  #打印此次用于评估的测试集中，分类器预测出错次数
 
 def classifyPerson():
     resultList = ['not at all', 'in small doses', 'in large doses']
