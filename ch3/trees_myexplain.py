@@ -35,27 +35,27 @@ def splitDataSet(dataSet, axis, value):  #按照给定特征axis及其值value�
     for featVec in dataSet:  #遍历数据集中样本
         if featVec[axis] == value:  #选择特征axis取值为value的样本（抽取符合特征的数据）
             reducedFeatVec = featVec[:axis]     #本行和下面一行去掉样本向量featVec中的特征axis，返回reducedFeatVec向量
-            reducedFeatVec.extend(featVec[axis+1:])
+            reducedFeatVec.extend(featVec[axis+1:]) 
             retDataSet.append(reducedFeatVec)  #将reducedFeatVec向量追加到数据集retDataSet
     return retDataSet  #返回本次筛选出的数据集
 
-def chooseBestFeatureToSplit(dataSet):  #通过计算不同特征值划分后数据集子集的香农熵，选择最好的数据划分方式
-    numFeatures = len(dataSet[0]) - 1      #the last column is used for the labels
-    baseEntropy = calcShannonEnt(dataSet)
-    bestInfoGain = 0.0; bestFeature = -1
-    for i in range(numFeatures):        #iterate over all the features
-        featList = [example[i] for example in dataSet]#create a list of all the examples of this feature
-        uniqueVals = set(featList)       #get a set of unique values
-        newEntropy = 0.0
-        for value in uniqueVals:
-            subDataSet = splitDataSet(dataSet, i, value)
-            prob = len(subDataSet)/float(len(dataSet))
-            newEntropy += prob * calcShannonEnt(subDataSet)
-        infoGain = baseEntropy - newEntropy     #calculate the info gain; ie reduction in entropy
-        if (infoGain > bestInfoGain):       #compare this to the best gain so far
-            bestInfoGain = infoGain         #if better than current best, set to best
-            bestFeature = i
-    return bestFeature                      #returns an integer
+def chooseBestFeatureToSplit(dataSet):  #通过计算不同特征值划分后数据子集的香农熵，选择最好的数据划分方式
+    numFeatures = len(dataSet[0]) - 1   #计算样本向量中样本个数，向量的最后一个元素是类别标签
+    baseEntropy = calcShannonEnt(dataSet)  #计算整个数据集的香农熵
+    bestInfoGain = 0.0; bestFeature = -1   
+    for i in range(numFeatures):        #遍历所有特征
+        featList = [example[i] for example in dataSet]  #取数据集dataSet中所有样本的第i个特征,存于列表featList,列表中元素可重复。 
+        uniqueVals = set(featList)      #对featList数据去重得到集合uniqueVals
+        newEntropy = 0.0  #按特征i划分后的数据集香农熵
+        for value in uniqueVals:  #依次获取第i个特征的特征值value
+            subDataSet = splitDataSet(dataSet, i, value)  #调用数据集划分函数,根据特征i的特征值value划分dataSet,返回划分出的子集subDataSet
+            prob = len(subDataSet)/float(len(dataSet))  #当前特征值样本在总样本中的占比
+            newEntropy += prob * calcShannonEnt(subDataSet)  #当前特征值子集香农熵乘以子集占比，再求和，得到按特征i划分后的数据集香农熵newEntropy。越有序的划分，newEntropy越小
+        infoGain = baseEntropy - newEntropy #计算按当前特征划分后，信息增益=原始信息熵-新信息熵。新信息熵越小，信息增益越大
+        if (infoGain > bestInfoGain):       #使得信息增益最大的特征划分就是最佳数据划分方式
+            bestInfoGain = infoGain         
+            bestFeature = i                 
+    return bestFeature                      #返回最佳划分对应的特征下标
 
 def majorityCnt(classList):
     classCount={}
