@@ -7,12 +7,12 @@ from math import log
 import operator
 
 def createDataSet(): #构建简单数据集
-    dataSet = [[1, 1, 'yes'],
+    dataSet = [[1, 1, 'yes'],  #列表dataSet中元素仍为列表，元素的前2列为样本特征的取值，第3列为数据划分的最终类别
                [1, 1, 'yes'],
                [1, 0, 'no'],
                [0, 1, 'no'],
                [0, 1, 'no']]
-    labels = ['no surfacing', 'flippers']
+    labels = ['no surfacing', 'flippers']    #labels为样本特征列表
     #change to discrete values
     return dataSet, labels
 
@@ -30,7 +30,7 @@ def calcShannonEnt(dataSet):  #计算给定数据集的香农熵
         shannonEnt -= prob * log(prob, 2) #根据香农熵公式计算给定数据集的香农熵。log是math模块中的函数,log(prob,2)：返回以2为低prob的对数
     return shannonEnt #返回本数据集的香农熵
 
-def splitDataSet(dataSet, axis, value):  #按照给定特征axis及其值value划分数据集dataSet
+def splitDataSet(dataSet, axis, value):  #按照给定特征及其值value划分数据集dataSet,axis是给定特征在特征向量labels上的索引
     retDataSet = [] #创建新的list对象retDataSet存放筛选出的数据。因为本函数代码在同一数据集上被调用多次，为了不修改原始数据集，创建一个新的列表对象
     for featVec in dataSet:  #遍历数据集中样本
         if featVec[axis] == value:  #选择特征axis取值为value的样本（抽取符合特征的数据）
@@ -39,12 +39,12 @@ def splitDataSet(dataSet, axis, value):  #按照给定特征axis及其值value�
             retDataSet.append(reducedFeatVec)  #将reducedFeatVec向量追加到数据集retDataSet
     return retDataSet  #返回本次筛选出的数据集
 
-def chooseBestFeatureToSplit(dataSet):  #通过计算不同特征值划分后数据子集的香农熵，选择最好的数据划分方式
+def chooseBestFeatureToSplit(dataSet):  #通过计算不同特征值划分后数据子集的香农熵，选择最好的划分数据集的特征
     numFeatures = len(dataSet[0]) - 1   #计算样本向量中特征个数，向量的最后一个元素是类别标签。dataSet类型是列表list,其中元素也是list,dataSet[0]表示取第一条样本
     baseEntropy = calcShannonEnt(dataSet)  #计算整个数据集的原始香农熵
     bestInfoGain = 0.0; bestFeature = -1   #初始化最佳增益和最佳特征索引
     for i in range(numFeatures):        #遍历所有特征
-        featList = [example[i] for example in dataSet]  #使用for循环,依次取出数据集dataSet中所有样本的第i个特征,存于列表featList,列表中元素可重复
+        featList = [example[i] for example in dataSet]  #使用for循环,依次取出数据集dataSet中所有样本第i个特征的特征值,存于列表featList,列表中元素可重复
         uniqueVals = set(featList)      #对featList数据去重得到集合uniqueVals，特征值value取值唯一
         newEntropy = 0.0  #按特征i划分后的所有数据子集香农熵之和
         for value in uniqueVals:  #获取当前特征的所有唯一特征值value
@@ -67,21 +67,21 @@ def majorityCnt(classList):  #本函数作用：当叶子节点中类标签不�
     return sortedClassCount[0][0]  #取出现次数最多的标签      sortedClassCount   [('H', 9), ('B', 6), ('A', 4)]
 
 def createTree(dataSet, labels):  #创建决策树
-    classList = [example[-1] for example in dataSet]
-    if classList.count(classList[0]) == len(classList):
-        return classList[0]#stop splitting when all of the classes are equal
-    if len(dataSet[0]) == 1: #stop splitting when there are no more features in dataSet
-        return majorityCnt(classList)
-    bestFeat = chooseBestFeatureToSplit(dataSet)
-    bestFeatLabel = labels[bestFeat]
-    myTree = {bestFeatLabel:{}}
-    del(labels[bestFeat])
-    featValues = [example[bestFeat] for example in dataSet]
-    uniqueVals = set(featValues)
-    for value in uniqueVals:
-        subLabels = labels[:]       #copy all of labels, so trees don't mess up existing labels
-        myTree[bestFeatLabel][value] = createTree(splitDataSet(dataSet, bestFeat, value), subLabels)
-    return myTree
+    classList = [example[-1] for example in dataSet]  #取出数据集中每条样本的类标签,组成类型标签列表。dataSet和classlist均为列表list
+    if classList.count(classList[0]) == len(classList):  #第一个递归出口：若数据集中类型标签全部相同,停止划分。count()函数统计列表中元素出现次数
+        return classList[0]  #返回第一个类标签
+    if len(dataSet[0]) == 1: #第二个递归出口：若数据集中的向量只剩下类标签元素,无法再划分
+        return majorityCnt(classList) #调用majorityCnt()，返回类标签向量中出现次数最多的标签
+    bestFeat = chooseBestFeatureToSplit(dataSet)  #调用chooseBestFeatureToSplit()，计算出数据集最佳划分特征索引bestFeat
+    bestFeatLabel = labels[bestFeat]  #获取本次划分的特征bestFeatLabel，labels是数据集的特征向量
+    myTree = {bestFeatLabel:{}}  #字典myTree存储决策树信息,每次选出的最佳特征作为key(即根节点)存入myTree
+    del(labels[bestFeat])  #每次划分完成后将bestFeat从特征向量labels中删除
+    featValues = [example[bestFeat] for example in dataSet]  #取出数据集中每条样本的bestFeat特征值,组成特征值列表featValues
+    uniqueVals = set(featValues) #featValues列表元素去重
+    for value in uniqueVals:  #循环调用splitDataSet(),根据特征bestFeatLabel的值value划分dataSet
+        subLabels = labels[:]       #拷贝当前特征向量(函数参数是列表类型时,参数是按照引用方式传递的,为保证每次调用函数createTree()时不改变原始列表的内容，使用新变量subLabels代替原始列表)        copy all of labels, so trees don't mess up existing labels
+        myTree[bestFeatLabel][value] = createTree(splitDataSet(dataSet, bestFeat, value), subLabels)  #使用splitDataSet()划分后返回的数据集递归创建决策树,createTree()返回的类标签作为决策时字典值value存入myTree
+    return myTree  #返回决策树字典信息
 
 def classify(inputTree, featLabels, testVec):
     firstStr = list(inputTree)[0]
