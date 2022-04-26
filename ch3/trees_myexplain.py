@@ -69,9 +69,9 @@ def majorityCnt(classList):  #本函数作用：当叶子节点中类标签不�
 def createTree(dataSet, labels):  #创建决策树
     classList = [example[-1] for example in dataSet]  #取出数据集中每条样本的类标签,组成类型标签列表。dataSet和classlist均为列表list
     if classList.count(classList[0]) == len(classList):  #第一个递归出口：若数据集中类型标签全部相同,停止划分。count()函数统计列表中元素出现次数
-        return classList[0]  #返回第一个类标签
+        return classList[0]  #返回第一个类标签(特征值)
     if len(dataSet[0]) == 1: #第二个递归出口：若数据集中的向量只剩下类标签元素,无法再划分
-        return majorityCnt(classList) #调用majorityCnt()，返回类标签向量中出现次数最多的标签
+        return majorityCnt(classList) #调用majorityCnt()，返回类标签向量中出现次数最多的类标签(特征值)
     bestFeat = chooseBestFeatureToSplit(dataSet)  #调用chooseBestFeatureToSplit()，计算出数据集最佳划分特征索引bestFeat
     bestFeatLabel = labels[bestFeat]  #获取本次划分的特征bestFeatLabel，labels是数据集的特征向量
     myTree = {bestFeatLabel:{}}  #字典myTree存储决策树信息,每次选出的最佳特征作为key(即根节点)存入myTree
@@ -80,7 +80,7 @@ def createTree(dataSet, labels):  #创建决策树
     uniqueVals = set(featValues) #featValues列表元素去重
     for value in uniqueVals:  #循环调用splitDataSet(),根据特征bestFeatLabel的值value划分dataSet
         subLabels = labels[:]       #拷贝当前特征向量(函数参数是列表类型时,参数是按照引用方式传递的,为保证每次调用函数createTree()时不改变原始列表的内容，使用新变量subLabels代替原始列表)        copy all of labels, so trees don't mess up existing labels
-        myTree[bestFeatLabel][value] = createTree(splitDataSet(dataSet, bestFeat, value), subLabels)  #使用splitDataSet()划分后返回的数据集递归创建决策树,createTree()返回的类标签作为决策时字典值value存入myTree
+        myTree[bestFeatLabel][value] = createTree(splitDataSet(dataSet, bestFeat, value), subLabels)  #使用splitDataSet()划分后返回的数据集递归创建决策树,createTree()返回的类标签作为myTree[bestFeatLabel][value]键值存入myTree
     return myTree  #返回决策树字典信息
 
 def classify(inputTree, featLabels, testVec):
