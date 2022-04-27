@@ -83,25 +83,30 @@ def createTree(dataSet, labels):  #创建决策树
         myTree[bestFeatLabel][value] = createTree(splitDataSet(dataSet, bestFeat, value), subLabels)  #使用splitDataSet()划分后返回的数据集递归创建决策树,createTree()返回的类标签作为myTree[bestFeatLabel][value]键值存入myTree
     return myTree  #返回决策树字典信息
 
-def classify(inputTree, featLabels, testVec):  #使用决策树的分类函数
-    firstStr = list(inputTree)[0]
-    secondDict = inputTree[firstStr]
-    featIndex = featLabels.index(firstStr)
-    key = testVec[featIndex]
-    valueOfFeat = secondDict[key]
-    if isinstance(valueOfFeat, dict):
-        classLabel = classify(valueOfFeat, featLabels, testVec)
-    else: classLabel = valueOfFeat
-    return classLabel
+'''
+inputTree = {'no surfacing': {0: 'no', 1: {'flippers': {0: 'no', 1: 'yes'}}}
+featLabels = ['no surfacing', 'flippers'] 
+testVec = [1,0]
+'''
+def classify(inputTree, featLabels, testVec):  #使用决策树的分类函数 inputTree是构建好的决策树，featLabels是数据集的特征向量，testVec是待测试的样本向量
+    firstStr = list(inputTree)[0]  #取出字典inputTree第一层的key存于firstStr     firstStr='no surfacing' 
+    secondDict = inputTree[firstStr]  #取出字典第一层key对应的value(也是字典)存于secondDict                  eg: secondDict={0: 'no', 1: {'flippers': {0: 'no', 1: 'yes'}}
+    featIndex = featLabels.index(firstStr)  #获取firstStr在特征向量中的索引存于featIndex                        featIndex=0
+    key = testVec[featIndex]  #取测试向量的firstStr特征的值存于key，用于在第二层字典secondDict中索引时的key        key=1
+    valueOfFeat = secondDict[key]   #取出第二层字典secondDict中key对应的value存于valueOfFeat                     valueOfFeat={'flippers': {0: 'no', 1: 'yes'}
+    if isinstance(valueOfFeat, dict):  #判断valueOfFeat是否为dict类型。isinstance()用以判断一个对象是否是一个已知的类型
+        classLabel = classify(valueOfFeat, featLabels, testVec)  #若valueOfFeat仍是字典，则递归调用classify()函数对其进一步分类
+    else: classLabel = valueOfFeat  #若valueOfFeat是叶子节点，则待测试向量的类型标签即为valueOfFeat
+    return classLabel  #返回类型标签
 
-def storeTree(inputTree, filename):
-    import pickle
-    fw = open(filename, 'wb')
-    pickle.dump(inputTree, fw)
-    fw.close()
+def storeTree(inputTree, filename):  #存储决策树(字典对象)二进制对象于文件
+    import pickle  #pickle模块能够实现任意对象与文本之间的相互转化，也可以实现任意对象与二进制之间的相互转化。也就是说，pickle 可以实现 Python 对象的存储及恢复
+    fw = open(filename, 'wb')  #文件filename以二进制格式打开且只用于写入。如果该文件已存在则打开文件，并从开头开始编辑，即原有内容会被删除。如果该文件不存在，创建新文件。返回文件对象fw用于操作文件
+    pickle.dump(inputTree, fw)  #将对象inputTree序列化成二进制对象，并写入指定的二进制文件fw，要求该文件必须是以"wb"的打开方式进行操作。
+    fw.close()  #关闭文件fw
 
-def grabTree(filename):
+def grabTree(filename):  #获取二进制文件中的决策树对象
     import pickle
-    fr = open(filename, 'rb')
-    return pickle.load(fr)
+    fr = open(filename, 'rb')  #文件filename以二进制格式打开且用于只读。文件指针将会放在文件的开头，返回用于操作文件的对象fr
+    return pickle.load(fr)  #pickle.load读取指定的序列化数据文件fr，并返回对应的python对象
 
