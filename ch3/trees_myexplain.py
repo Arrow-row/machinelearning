@@ -83,7 +83,7 @@ def createTree(dataSet, labels):  #创建决策树
         myTree[bestFeatLabel][value] = createTree(splitDataSet(dataSet, bestFeat, value), subLabels)  #使用splitDataSet()划分后返回的数据集递归创建决策树,createTree()返回的类标签作为myTree[bestFeatLabel][value]键值存入myTree
     return myTree  #返回决策树字典信息
 
-def classify(inputTree, featLabels, testVec):
+def classify(inputTree, featLabels, testVec):  #使用决策树的分类函数
     firstStr = list(inputTree)[0]
     secondDict = inputTree[firstStr]
     featIndex = featLabels.index(firstStr)
