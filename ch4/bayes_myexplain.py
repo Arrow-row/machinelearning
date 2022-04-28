@@ -5,48 +5,48 @@ Created on Oct 19, 2010
 '''
 import numpy as np
 
-def loadDataSet():
-    postingList = [['my', 'dog', 'has', 'flea', 'problems', 'help', 'please'],
+def loadDataSet():  #创建简单数据样本的函数
+    postingList = [['my', 'dog', 'has', 'flea', 'problems', 'help', 'please'],   #postingList是进行词条切分后的文档列表，包含6条评论数据，每条是组成该评论的单词组成的列表
                    ['maybe', 'not', 'take', 'him', 'to', 'dog', 'park', 'stupid'],
                    ['my', 'dalmation', 'is', 'so', 'cute', 'I', 'love', 'him'],
                    ['stop', 'posting', 'stupid', 'worthless', 'garbage'],
                    ['mr', 'licks', 'ate', 'my', 'steak', 'how', 'to', 'stop', 'him'],
                    ['quit', 'buying', 'worthless', 'dog', 'food', 'stupid']]
-    classVec = [0, 1, 0, 1, 0, 1]    #1 is abusive, 0 not
-    return postingList, classVec
+    classVec = [0, 1, 0, 1, 0, 1]    #postingList中6条评论的标签，1表示负面评论，0表示正面评论，人为做的分类标签
+    return postingList, classVec   #返回postingList, classVec
 
-def createVocabList(dataSet):
-    vocabSet = set([])  #create empty set
-    for document in dataSet:
-        vocabSet = vocabSet | set(document) #union of the two sets
-    return list(vocabSet)
+def createVocabList(dataSet): #本函数用于获取文档词汇表，dataSet是评论列表
+    vocabSet = set([])  #创建一个空集vocabSet <class 'set'>
+    for document in dataSet:  #依次获取dataSet中每条评论
+        vocabSet = vocabSet | set(document) #vocabSet和set(document)两集合求并，最终dataSet中包含文档中出现的所有单词，元素不重复
+    return list(vocabSet)  #返回所有不重复词组成的列表，即词汇表
 
-def setOfWords2Vec(vocabList, inputSet):
-    returnVec = [0]*len(vocabList)
-    for word in inputSet:
-        if word in vocabList:
+def setOfWords2Vec(vocabList, inputSet):  #本函数将文档转换为词向量，vocabList为词汇列表，可由函数createVocabList()生成，inputSet为待转换文档，数据结构如postingList[0]，vocabList, inputSet类型均为list
+    returnVec = [0]*len(vocabList)  #初始化输出的文档向量returnVec，其中所含元素都为0的向量，元素个数为len(vocabList)。 A=[0]*4，输出A：[0, 0, 0, 0]
+    for word in inputSet:  #依次取出inputSet中单词
+        if word in vocabList:  #若单词包含于词汇表vocabList，取出该词在词汇表中索引后，将词向量对应位置元素置1，表示词汇表中单词在文档中出现过
             returnVec[vocabList.index(word)] = 1
-        else: print("the word: %s is not in my Vocabulary!" % word)
-    return returnVec
+        else: print("the word: %s is not in my Vocabulary!" % word)  #若词汇表中查不到当前单纯，打印表中不含该单词的信息
+    return returnVec  #文档向量returnVec的每一元素为1或0，分别表示词汇表中的单词在输入文档中是否出现
 
-def trainNB0(trainMatrix, trainCategory):
-    numTrainDocs = len(trainMatrix)
-    numWords = len(trainMatrix[0])
-    pAbusive = sum(trainCategory)/float(numTrainDocs)
+def trainNB0(trainMatrix, trainCategory):  #本函数为朴素贝叶斯分类器训练函数，trainMatrix是转换为词向量后的文档矩阵，矩阵元素由returnVec组成,trainCategory是文档标签向量(classVec)
+    numTrainDocs = len(trainMatrix)  #用于训练的文档个数
+    numWords = len(trainMatrix[0])  #numWords为文档矩阵中每个文档样本词向量长度
+    pAbusive = sum(trainCategory)/float(numTrainDocs)  #pAbusive为正向文档在所有文档中占比，二分类问题中，负向文档占比为1-pAbusive。sum(trainCategory)将trainCategory中元素求和。正向类型用1表示，0表示负向
     p0Num = np.ones(numWords); p1Num = np.ones(numWords)      #change to np.ones()
     p0Denom = 2.0; p1Denom = 2.0                        #change to 2.0
-    for i in range(numTrainDocs):
-        if trainCategory[i] == 1:
-            p1Num += trainMatrix[i]
-            p1Denom += sum(trainMatrix[i])
-        else:
-            p0Num += trainMatrix[i]
-            p0Denom += sum(trainMatrix[i])
-    p1Vect = np.log(p1Num/p1Denom)          #change to np.log()
-    p0Vect = np.log(p0Num/p0Denom)          #change to np.log()
-    return p0Vect, p1Vect, pAbusive
+    for i in range(numTrainDocs):  #遍历训练集中所有文档及其类别
+        if trainCategory[i] == 1:  #当前文档属于类别1，获取用于求类型1文档中各特征条件概率的数据
+            p1Num += trainMatrix[i]  #向量求和，计算类型1文档中各特征出现次数，作为分子
+            p1Denom += sum(trainMatrix[i])  #所有类型1文档中包含的所有词汇之和作为分母
+        else:  #当前文档属于类别0，获取用于求类型0文档中各特征条件概率的数据
+            p0Num += trainMatrix[i]  #向量求和，计算类型0文档中各特征出现次数，作为分子
+            p0Denom += sum(trainMatrix[i])  #所有类型0文档中包含的所有词汇之和作为分母
+    p1Vect = np.log(p1Num/p1Denom)          #类型1文档各特征词数分别除以词汇总数，得到类型1文档中各特征词汇出现的概率向量p1Vect。log()计算自然对数 
+    p0Vect = np.log(p0Num/p0Denom)          #类型0文档各特征词数分别除以词汇总数，得到类型0文档中各特征词汇出现的概率向量p0Vect    
+    return p0Vect, p1Vect, pAbusive   #返回正向文档在所有文档中占比pAbusive、两类文档中各特征词汇概率向量p1Vect、p0Vect
 
-def classifyNB(vec2Classify, p0Vec, p1Vec, pClass1):
+def classifyNB(vec2Classify, p0Vec, p1Vec, pClass1):  
     p1 = sum(vec2Classify * p1Vec) + np.log(pClass1)    #element-wise mult
     p0 = sum(vec2Classify * p0Vec) + np.log(1.0 - pClass1)
     if p1 > p0:
