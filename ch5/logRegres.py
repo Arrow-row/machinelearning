@@ -95,7 +95,7 @@ def colicTest():
 		for i in range(21):
 			lineArr.append(float(currLine[i]))
 		trainingSet.append(lineArr)
-		trainingLabels.append(float(currline[21]))
+		trainingLabels.append(float(currLine[21]))
 	trainWeights=stocGradAscent1(np.array(trainingSet),trainingLabels,1000)
 	errorCount=0;numTestVec=0.0
 	for line in frTest.readlines():
@@ -103,15 +103,15 @@ def colicTest():
 		currLine=line.strip().split('\t')
 		lineArr=[]
 		for i in range(21):
-			lineArr.append(float(currline[i]))
-		if int(classifyVector(np.array(lineArr),trainWeights))!=int(currline[21]):
+			lineArr.append(float(currLine[i]))
+		if int(classifyVector(np.array(lineArr),trainWeights))!=int(currLine[21]):
 			errorCount+=1
 	errorRate=(float(errorCount)/numTestVec)
 	print("the error rate of this test is: %f" % errorRate)
 	return errorRate
 
 def multiTest():
-	numTestVec=10;errorSum=0.0
+	numTests=10;errorSum=0.0
 	for k in range(numTests):
 		errorSum+=colicTest()
-	print("after %d iterations the average error rate is: %f" % (numTestVec,errorSum/float(numTests)))
+	print("after %d iterations the average error rate is: %f" % (numTests,errorSum/float(numTests)))
