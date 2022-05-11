@@ -6,27 +6,27 @@ Chapter 5 source file for Machine Learing in Action
 from numpy import *
 from time import sleep
 
-def loadDataSet(fileName):
-    dataMat = []; labelMat = []
-    fr = open(fileName)
-    for line in fr.readlines():
-        lineArr = line.strip().split('\t')
-        dataMat.append([float(lineArr[0]), float(lineArr[1])])
-        labelMat.append(float(lineArr[2]))
-    return dataMat,labelMat
+def loadDataSet(fileName):  #从文件中解析样本数据的函数
+    dataMat = []; labelMat = []  #样本特征矩阵和样本标签矩阵
+    fr = open(fileName)  #以只读形式打开文件，返回文件对象fr，可通过该对象调用相关函数对文件进行操作
+    for line in fr.readlines():  #依次获取文件中每一行。fr.readlines()读取文件中所有行并以行内容作为元素返回列表
+        lineArr = line.strip().split('\t')  #以'\t'对每行字符串进行切片，并去除首位空格，返回分割后的字符串列表给lineArr
+        dataMat.append([float(lineArr[0]), float(lineArr[1])])  #将lineArr前两个元素转换为float类型后，以列表形式追加到dataMat
+        labelMat.append(float(lineArr[2]))  #lineArr中第3个元素转换为float型后，作为标签追加到labelMat
+    return dataMat,labelMat  #返回样本特征矩阵和样本标签矩阵
 
-def selectJrand(i,m):
-    j=i #we want to select any J not equal to i
-    while (j==i):
-        j = int(random.uniform(0,m))
-    return j
+def selectJrand(i,m):  #获取第2个alpha的下标j，i是外层循环已选的第1个alpha的下标，m是所有alpha的数目。简化版的SMO首先遍历每个alpha，然后在剩下的alpha集合中随机选择另一个alpha构建alpha对。
+    j=i 
+    while (j==i):  #要求i、j不相等
+        j = int(random.uniform(0,m))  
+    return j  #返回内层alpha下标j
 
-def clipAlpha(aj,H,L):
-    if aj > H: 
+def clipAlpha(aj,H,L): #对alpha进行剪辑
+    if aj > H:  #若求出的aj大于区间最大值，则aj取区间最大值
         aj = H
-    if L > aj:
+    if L > aj:  #若求出的aj小于区间最小值，则aj取区间最小值
         aj = L
-    return aj
+    return aj  #返回aj
 
 def smoSimple(dataMatIn, classLabels, C, toler, maxIter):
     dataMatrix = mat(dataMatIn); labelMat = mat(classLabels).transpose()
