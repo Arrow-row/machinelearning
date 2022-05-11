@@ -35,9 +35,9 @@ def smoSimple(dataMatIn, classLabels, C, toler, maxIter):  #简化版SMO算法�
     alphas = mat(zeros((m,1))) #alpha列矩阵，m行1列，元素均初始化为0
     iter = 0 #没有任何alpha改变的情况下遍历数据集的次数，当此变量达到输入值maxIter时，函数结束运行并退出
     while (iter < maxIter):
-        alphaPairsChanged = 0 #
+        alphaPairsChanged = 0 #记录alpha是否已经进行优化
         for i in range(m):
-            fXi = float(multiply(alphas,labelMat).T*(dataMatrix*dataMatrix[i,:].T)) + b
+            fXi = float(multiply(alphas,labelMat).T*(dataMatrix*dataMatrix[i,:].T)) + b  #multiply(alphas,labelMat).T 中，alphas,labelMat均是m行1列，alphas是0向量，labelMat是标签向量，使用multiply使矩阵对应位置元素相乘，再使用.T将结果转置为行向量
             Ei = fXi - float(labelMat[i])#if checks if an example violates KKT conditions
             if ((labelMat[i]*Ei < -toler) and (alphas[i] < C)) or ((labelMat[i]*Ei > toler) and (alphas[i] > 0)):
                 j = selectJrand(i,m)
