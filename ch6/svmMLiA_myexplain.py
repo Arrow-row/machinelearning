@@ -28,13 +28,14 @@ def clipAlpha(aj,H,L): #对alpha进行剪辑
         aj = L
     return aj  #返回aj
 
-def smoSimple(dataMatIn, classLabels, C, toler, maxIter):
-    dataMatrix = mat(dataMatIn); labelMat = mat(classLabels).transpose()
-    b = 0; m,n = shape(dataMatrix)
-    alphas = mat(zeros((m,1)))
-    iter = 0
+def smoSimple(dataMatIn, classLabels, C, toler, maxIter):  #简化版SMO算法。输入参数分别为：数据集，类别标签，常数C，容错率，退出前最大循环参数
+    dataMatrix = mat(dataMatIn); labelMat = mat(classLabels).transpose()  #输入dataMatIn转换为矩阵dataMatrix，classLabels转换为矩阵并转置得到列向量labelMat,类别标签向量中每行元素都和数据矩阵中的行一一对应
+    b = 0
+    m,n = shape(dataMatrix) #获取输入矩阵行m列n（m=100,n=2）
+    alphas = mat(zeros((m,1))) #alpha列矩阵，m行1列，元素均初始化为0
+    iter = 0 #没有任何alpha改变的情况下遍历数据集的次数，当此变量达到输入值maxIter时，函数结束运行并退出
     while (iter < maxIter):
-        alphaPairsChanged = 0
+        alphaPairsChanged = 0 #
         for i in range(m):
             fXi = float(multiply(alphas,labelMat).T*(dataMatrix*dataMatrix[i,:].T)) + b
             Ei = fXi - float(labelMat[i])#if checks if an example violates KKT conditions
