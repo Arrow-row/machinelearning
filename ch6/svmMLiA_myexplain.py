@@ -97,33 +97,33 @@ class optStruct:  #结构化数据，便于使用
         for i in range(self.m):
             self.K[:,i] = kernelTrans(self.X, self.X[i,:], kTup)
         
-def calcEk(oS, k): #本函数计算并返回E值，oS是optStruct类，
-    fXk = float(multiply(oS.alphas,oS.labelMat).T*oS.K[:,k] + oS.b)
+def calcEk(oS, k): #本函数计算并返回预测误差Ek值，oS是optStruct类，k是迭代变量
+    fXk = float(multiply(oS.alphas,oS.labelMat).T*oS.K[:,k] + oS.b)  #为什么乘以oS.K[:,k]    注意K大写小写
     Ek = fXk - float(oS.labelMat[k])
     return Ek
         
-def selectJ(i, oS, Ei):         #this is the second choice -heurstic, and calcs Ej
+def selectJ(i, oS, Ei):         #本函数用于选择内循环的alpha        this is the second choice -heurstic, and calcs Ej
     maxK = -1; maxDeltaE = 0; Ej = 0
-    oS.eCache[i] = [1,Ei]  #set valid #choose the alpha that gives the maximum delta E
-    validEcacheList = nonzero(oS.eCache[:,0].A)[0]
-    if (len(validEcacheList)) > 1:
-        for k in validEcacheList:   #loop through valid Ecache values and find the one that maximizes delta E
-            if k == i: continue #don't calc for i, waste of time
-            Ek = calcEk(oS, k)
-            deltaE = abs(Ei - Ek)
-            if (deltaE > maxDeltaE):
+    oS.eCache[i] = [1,Ei]  #输入参数Ei值存入oS.eCache[i]并设置为有效的，有效的意思是已经计算好    set valid #choose the alpha that gives the maximum delta E
+    validEcacheList = nonzero(oS.eCache[:,0].A)[0]  #oS.eCache[:,0].A表示取matrix eCache中第0列，并将其从matrix转换为array，使用nonzero()[0]返回其中非0元素的索引值组成的列表
+    if (len(validEcacheList)) > 1: #非0元素个数大于1，有效的Ei不止1个
+        for k in validEcacheList:   #遍历非0元素的索引，用以找到使delta E最大的Ej   loop through valid Ecache values and find the one that maximizes delta E
+            if k == i: continue #Ei不再参与计算 don't calc for i, waste of time
+            Ek = calcEk(oS, k) #调用calcEk()计算误差Ek
+            deltaE = abs(Ei - Ek)  #计算误差增量deltaE
+            if (deltaE > maxDeltaE):  #若本次循环计算得到的最新deltaE大于上一轮的值，则更新maxK、maxDeltaE、Ej为当前计算所得
                 maxK = k; maxDeltaE = deltaE; Ej = Ek
-        return maxK, Ej
-    else:   #in this case (first time around) we don't have any valid eCache values
-        j = selectJrand(i, oS.m)
-        Ej = calcEk(oS, j)
-    return j, Ej
+        return maxK, Ej  #返回找到的内层循环的aloha下标maxK和对应误差值Ej
+    else:   #刚开始计算时，误差缓存eCache中没有足够的有效值(第一列标志位均为0)，本算法采用的方式是随机选择一个alpha      in this case (first time around) we don't have any valid eCache values
+        j = selectJrand(i, oS.m) #调用selectJrand()随机选取不同于i的下标作为内层alpha下标
+        Ej = calcEk(oS, j) #调用calcEk()计算误差Ej
+    return j, Ej #返回找到的内层循环的aloha下标j和对应误差值Ej
 
-def updateEk(oS, k):#after any alpha has changed update the new value in the cache
+def updateEk(oS, k): #重新计算Ek并存入缓存eCache         after any alpha has changed update the new value in the cache
     Ek = calcEk(oS, k)
     oS.eCache[k] = [1,Ek]
         
-def innerL(i, oS):
+def innerL(i, oS):  #
     Ei = calcEk(oS, i)
     if ((oS.labelMat[i]*Ei < -oS.tol) and (oS.alphas[i] < oS.C)) or ((oS.labelMat[i]*Ei > oS.tol) and (oS.alphas[i] > 0)):
         j,Ej = selectJ(i, oS, Ei) #this has been changed from selectJrand
