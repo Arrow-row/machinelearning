@@ -37,38 +37,38 @@ def smoSimple(dataMatIn, classLabels, C, toler, maxIter):  #简化版SMO算法�
     while (iter < maxIter):
         alphaPairsChanged = 0 #记录alpha是否已经进行优化
         for i in range(m):
-            fXi = float(multiply(alphas,labelMat).T*(dataMatrix*dataMatrix[i,:].T)) + b  #multiply(alphas,labelMat).T 中，alphas,labelMat均是m行1列，alphas是0向量，labelMat是标签向量，使用multiply使矩阵对应位置元素相乘，再使用.T将结果转置为行向量
-            Ei = fXi - float(labelMat[i])#if checks if an example violates KKT conditions
-            if ((labelMat[i]*Ei < -toler) and (alphas[i] < C)) or ((labelMat[i]*Ei > toler) and (alphas[i] > 0)):
-                j = selectJrand(i,m)
-                fXj = float(multiply(alphas,labelMat).T*(dataMatrix*dataMatrix[j,:].T)) + b
-                Ej = fXj - float(labelMat[j])
-                alphaIold = alphas[i].copy(); alphaJold = alphas[j].copy();
-                if (labelMat[i] != labelMat[j]):
+            fXi = float(multiply(alphas,labelMat).T*(dataMatrix*dataMatrix[i,:].T)) + b  #fXi计算样本i的预测值,是一个数值,使用了决策函数F(x)=sign(w^T*x+b),w=sum(ai*yi*xi),i=1,2...N;multiply(alphas,labelMat).T中,alphas,labelMat均是mx1的列向量,alphas是0向量,labelMat是标签向量,使用multiply使矩阵对应位置元素相乘,再使用.T将结果转置为1xm行向量;dataMatrix*dataMatrix[i,:].T中,dataMatrix与其第i行转置后做矩阵乘法,结果是mx1列向量;
+            Ei = fXi - float(labelMat[i]) #预测结果与真实标签作差，得到预测误差Ei    if checks if an example violates KKT conditions
+            if ((labelMat[i]*Ei < -toler) and (alphas[i] < C)) or ((labelMat[i]*Ei > toler) and (alphas[i] > 0)): #检测预测误差Ei是否超过预设的容忍度,若超过,则对样本i对应的alpha[i]进行优化;同时检查alpha值，使其不能等于0或C
+                j = selectJrand(i,m) #利用selectJrand()随机选择第2个alpha值，即alpha[j]
+                fXj = float(multiply(alphas,labelMat).T*(dataMatrix*dataMatrix[j,:].T)) + b #fXj计算样本j的预测值
+                Ej = fXj - float(labelMat[j]) #计算alpha[j]的预测误差
+                alphaIold = alphas[i].copy() #保存alpha[i]的旧值
+                alphaJold = alphas[j].copy() #保存alpha[j]的旧值
+                if (labelMat[i] != labelMat[j]):  #根据SMO算法中子问题约束条件alpha取值[0,C],sum(alphas*labelMat)=0,以及标签值labelMat[i]、labelMat[j]关系,可以得到两种情况下alpha新值的取值范围[L,H],两种情况分别为labelMat[i]、labelMat[j]相等和不等
                     L = max(0, alphas[j] - alphas[i])
                     H = min(C, C + alphas[j] - alphas[i])
                 else:
                     L = max(0, alphas[j] + alphas[i] - C)
                     H = min(C, alphas[j] + alphas[i])
-                if L==H: print("L==H"); continue
-                eta = 2.0 * dataMatrix[i,:]*dataMatrix[j,:].T - dataMatrix[i,:]*dataMatrix[i,:].T - dataMatrix[j,:]*dataMatrix[j,:].T
-                if eta >= 0: print("eta>=0"); continue
-                alphas[j] -= labelMat[j]*(Ei - Ej)/eta
-                alphas[j] = clipAlpha(alphas[j],H,L)
-                if (abs(alphas[j] - alphaJold) < 0.00001): print("j not moving enough"); continue
-                alphas[i] += labelMat[j]*labelMat[i]*(alphaJold - alphas[j])#update i by the same amount as j
-                                                                        #the update is in the oppostie direction
-                b1 = b - Ei- labelMat[i]*(alphas[i]-alphaIold)*dataMatrix[i,:]*dataMatrix[i,:].T - labelMat[j]*(alphas[j]-alphaJold)*dataMatrix[i,:]*dataMatrix[j,:].T
-                b2 = b - Ej- labelMat[i]*(alphas[i]-alphaIold)*dataMatrix[i,:]*dataMatrix[j,:].T - labelMat[j]*(alphas[j]-alphaJold)*dataMatrix[j,:]*dataMatrix[j,:].T
-                if (0 < alphas[i]) and (C > alphas[i]): b = b1
+                if L==H: print("L==H"); continue  #L、H相等不做任何改变，本次循环结束运行下一次for循环
+                eta = 2.0 * dataMatrix[i,:]*dataMatrix[j,:].T - dataMatrix[i,:]*dataMatrix[i,:].T - dataMatrix[j,:]*dataMatrix[j,:].T  #计算系数2*K12-K11-K22
+                if eta >= 0: print("eta>=0"); continue  
+                alphas[j] -= labelMat[j]*(Ei - Ej)/eta  #计算得出新的未剪辑的alphas[j]
+                alphas[j] = clipAlpha(alphas[j],H,L)  #调用clipAlpha()对新的alphas[j]取值进行剪辑，限制其最小值在[L,H]之间
+                if (abs(alphas[j] - alphaJold) < 0.00001): print("j not moving enough"); continue  #若alphas[j]新旧值相比变化太小不够明显，则退出本次循环
+                alphas[i] += labelMat[j]*labelMat[i]*(alphaJold - alphas[j])  #计算新的alphas[i]值，alphas[i]和alphas[j]增量的大小相同，符号相反  
+                b1 = b - Ei- labelMat[i]*(alphas[i]-alphaIold)*dataMatrix[i,:]*dataMatrix[i,:].T - labelMat[j]*(alphas[j]-alphaJold)*dataMatrix[i,:]*dataMatrix[j,:].T  #计算新的b1
+                b2 = b - Ej- labelMat[i]*(alphas[i]-alphaIold)*dataMatrix[i,:]*dataMatrix[j,:].T - labelMat[j]*(alphas[j]-alphaJold)*dataMatrix[j,:]*dataMatrix[j,:].T  #计算新的b2
+                if (0 < alphas[i]) and (C > alphas[i]): b = b1  #由于对alpha进行了剪辑(调用clipAlpha()),使得alpha取值为[0,C];取值范围在(0,C)的alpha对应的样例是支持向量,对应的bnew满足KKT条件
                 elif (0 < alphas[j]) and (C > alphas[j]): b = b2
-                else: b = (b1 + b2)/2.0
-                alphaPairsChanged += 1
+                else: b = (b1 + b2)/2.0  #如果alpha=0或C,那么b1new和b2new均符合KKT条件,此时选择它们的中点作为bnew
+                alphaPairsChanged += 1 #for循环内的语句执行到此，表示一对alpha成功被优化，标记alphaPairsChanged置为1，在此之前的任一continue都不会使本标记改变
                 print("iter: %d i:%d, pairs changed %d" % (iter,i,alphaPairsChanged))
-        if (alphaPairsChanged == 0): iter += 1
+        if (alphaPairsChanged == 0): iter += 1 #一次for循环后没有改变alpha对，迭代计数器iter+1;只要alpha有更新,iter就归0;连续迭代maxIter次后alpha对依然没有更新,退出while循环
         else: iter = 0
         print("iteration number: %d" % iter)
-    return b,alphas
+    return b,alphas  #返回alpha和b
 
 def kernelTrans(X, A, kTup): #calc the kernel or transform data to a higher dimensional space
     m,n = shape(X)
@@ -83,8 +83,8 @@ def kernelTrans(X, A, kTup): #calc the kernel or transform data to a higher dime
     That Kernel is not recognized')
     return K
 
-class optStruct:
-    def __init__(self,dataMatIn, classLabels, C, toler, kTup):  # Initialize the structure with the parameters 
+class optStruct:  #结构化数据，便于使用
+    def __init__(self,dataMatIn, classLabels, C, toler, kTup):  #用输入参数初始化类的属性值，self可看作java中的this。  Initialize the structure with the parameters 
         self.X = dataMatIn
         self.labelMat = classLabels
         self.C = C
@@ -92,12 +92,12 @@ class optStruct:
         self.m = shape(dataMatIn)[0]
         self.alphas = mat(zeros((self.m,1)))
         self.b = 0
-        self.eCache = mat(zeros((self.m,2))) #first column is valid flag
+        self.eCache = mat(zeros((self.m,2))) #eCache为缓存矩阵，缓存误差值Ei，用于选择alpha时计算最大的Ei-Ej;eCache为m行2列，第1列是eCache是否有效的标识，第2列是实际的E值
         self.K = mat(zeros((self.m,self.m)))
         for i in range(self.m):
             self.K[:,i] = kernelTrans(self.X, self.X[i,:], kTup)
         
-def calcEk(oS, k):
+def calcEk(oS, k): #本函数计算并返回E值，oS是optStruct类，
     fXk = float(multiply(oS.alphas,oS.labelMat).T*oS.K[:,k] + oS.b)
     Ek = fXk - float(oS.labelMat[k])
     return Ek
