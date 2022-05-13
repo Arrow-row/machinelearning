@@ -33,13 +33,13 @@ def smoSimple(dataMatIn, classLabels, C, toler, maxIter):  #简化版SMO算法�
     b = 0
     m,n = shape(dataMatrix) #获取输入矩阵行m列n（m=100,n=2）
     alphas = mat(zeros((m,1))) #alpha列矩阵，m行1列，元素均初始化为0
-    iter = 0 #没有任何alpha改变的情况下遍历数据集的次数，当此变量达到输入值maxIter时，函数结束运行并退出
+    iter = 0 #记录alpha未成功更新的循环次数，只要有更新，该值就会被置0，连续多次未更新，该值会持续增加，当此变量值达到maxIter，也就是最大循环次数时，表明所有alpha更新完成，退出while循环，此函数结束运行
     while (iter < maxIter):
         alphaPairsChanged = 0 #记录alpha是否已经进行优化
         for i in range(m):
             fXi = float(multiply(alphas,labelMat).T*(dataMatrix*dataMatrix[i,:].T)) + b  #fXi计算样本i的预测值,是一个数值,使用了决策函数F(x)=sign(w^T*x+b),w=sum(ai*yi*xi),i=1,2...N;multiply(alphas,labelMat).T中,alphas,labelMat均是mx1的列向量,alphas是0向量,labelMat是标签向量,使用multiply使矩阵对应位置元素相乘,再使用.T将结果转置为1xm行向量;dataMatrix*dataMatrix[i,:].T中,dataMatrix与其第i行转置后做矩阵乘法,结果是mx1列向量;
             Ei = fXi - float(labelMat[i]) #预测结果与真实标签作差，得到预测误差Ei    if checks if an example violates KKT conditions
-            if ((labelMat[i]*Ei < -toler) and (alphas[i] < C)) or ((labelMat[i]*Ei > toler) and (alphas[i] > 0)): #检测预测误差Ei是否超过预设的容忍度,若超过,则对样本i对应的alpha[i]进行优化;同时检查alpha值，使其不能等于0或C
+            if ((labelMat[i]*Ei < -toler) and (alphas[i] < C)) or ((labelMat[i]*Ei > toler) and (alphas[i] > 0)): #检测预测误差Ei是否超过预设的容忍度,若超过,则对样本i对应的alpha[i]进行优化;同时检查alpha值，使其不能等于0或C。alpha取值为(0,C)时，当前样本为支持向量，应满足labelMat[i]*Ei=0，这里toler是计算精度允许的误差范围
                 j = selectJrand(i,m) #利用selectJrand()随机选择第2个alpha值，即alpha[j]
                 fXj = float(multiply(alphas,labelMat).T*(dataMatrix*dataMatrix[j,:].T)) + b #fXj计算样本j的预测值
                 Ej = fXj - float(labelMat[j]) #计算alpha[j]的预测误差
@@ -97,8 +97,8 @@ class optStruct:  #结构化数据，便于使用
         for i in range(self.m):
             self.K[:,i] = kernelTrans(self.X, self.X[i,:], kTup)
         
-def calcEk(oS, k): #本函数计算并返回预测误差Ek值，oS是optStruct类，k是迭代变量
-    fXk = float(multiply(oS.alphas,oS.labelMat).T*oS.K[:,k] + oS.b)  #为什么乘以oS.K[:,k]    注意K大写小写
+def calcEk(oS, k): #本函数计算并返回预测误差Ek值，oS是optStruct类对象，k是迭代变量
+    fXk = float(multiply(oS.alphas,oS.labelMat).T*oS.K[:,k] + oS.b)  #计算预测值   为什么乘以oS.K[:,k]    注意K大写小写
     Ek = fXk - float(oS.labelMat[k])
     return Ek
         
@@ -123,55 +123,56 @@ def updateEk(oS, k): #重新计算Ek并存入缓存eCache         after any alph
     Ek = calcEk(oS, k)
     oS.eCache[k] = [1,Ek]
         
-def innerL(i, oS):  #
-    Ei = calcEk(oS, i)
-    if ((oS.labelMat[i]*Ei < -oS.tol) and (oS.alphas[i] < oS.C)) or ((oS.labelMat[i]*Ei > oS.tol) and (oS.alphas[i] > 0)):
-        j,Ej = selectJ(i, oS, Ei) #this has been changed from selectJrand
-        alphaIold = oS.alphas[i].copy(); alphaJold = oS.alphas[j].copy();
-        if (oS.labelMat[i] != oS.labelMat[j]):
+def innerL(i, oS):   #本函数寻找合适的内循环下标j，i是外层循环变量，oS是optStruct类对象
+    Ei = calcEk(oS, i)  #调用calcEk()计算预测误差Ei
+    if ((oS.labelMat[i]*Ei < -oS.tol) and (oS.alphas[i] < oS.C)) or ((oS.labelMat[i]*Ei > oS.tol) and (oS.alphas[i] > 0)):  #选择误差oS.tol允许的支持向量
+        j,Ej = selectJ(i, oS, Ei) #这里调用selectJ()选择内循环的alpha下标j (不同于简单版本SMO调用selectJrand())
+        alphaIold = oS.alphas[i].copy(); alphaJold = oS.alphas[j].copy();  #保存alpha[i]、alpha[j]的旧值
+        if (oS.labelMat[i] != oS.labelMat[j]):   #根据SMO算法中子问题约束条件alpha取值[0,C],sum(alphas*labelMat)=0,以及标签值labelMat[i]、labelMat[j]关系,可以得到两种情况下alpha新值的取值范围[L,H],两种情况分别为labelMat[i]、labelMat[j]相等和不等
             L = max(0, oS.alphas[j] - oS.alphas[i])
             H = min(oS.C, oS.C + oS.alphas[j] - oS.alphas[i])
         else:
             L = max(0, oS.alphas[j] + oS.alphas[i] - oS.C)
             H = min(oS.C, oS.alphas[j] + oS.alphas[i])
-        if L==H: print("L==H"); return 0
-        eta = 2.0 * oS.K[i,j] - oS.K[i,i] - oS.K[j,j] #changed for kernel
-        if eta >= 0: print("eta>=0"); return 0
-        oS.alphas[j] -= oS.labelMat[j]*(Ei - Ej)/eta
-        oS.alphas[j] = clipAlpha(oS.alphas[j],H,L)
-        updateEk(oS, j) #added this for the Ecache
-        if (abs(oS.alphas[j] - alphaJold) < 0.00001): print("j not moving enough"); return 0
-        oS.alphas[i] += oS.labelMat[j]*oS.labelMat[i]*(alphaJold - oS.alphas[j])#update i by the same amount as j
-        updateEk(oS, i) #added this for the Ecache                    #the update is in the oppostie direction
-        b1 = oS.b - Ei- oS.labelMat[i]*(oS.alphas[i]-alphaIold)*oS.K[i,i] - oS.labelMat[j]*(oS.alphas[j]-alphaJold)*oS.K[i,j]
-        b2 = oS.b - Ej- oS.labelMat[i]*(oS.alphas[i]-alphaIold)*oS.K[i,j]- oS.labelMat[j]*(oS.alphas[j]-alphaJold)*oS.K[j,j]
-        if (0 < oS.alphas[i]) and (oS.C > oS.alphas[i]): oS.b = b1
+        if L==H: print("L==H"); return 0  #若L=H，当前j不是要找的内层alpha下标值，结束本次循环
+        eta = 2.0 * oS.K[i,j] - oS.K[i,i] - oS.K[j,j] #使用核函数后的eta计算,eta=2*K12-K11-K22,用于后续求alpha时做分母
+        if eta >= 0: print("eta>=0"); return 0  #若eta>=0，当前j不是要找的内层alpha下标值，结束本次循环
+        oS.alphas[j] -= oS.labelMat[j]*(Ei - Ej)/eta #计算得出新的未剪辑的alphas[j]，并以此更新对象oS中的alphas[j]
+        oS.alphas[j] = clipAlpha(oS.alphas[j],H,L) #调用clipAlpha()对新的alphas[j]取值进行剪辑，限制其取值在[L,H]之间，并以此更新对象oS中的alphas[j]
+        updateEk(oS, j) #oS中的alphas[j]更新后，重新计算对应样本的预测值和误差值，并调用updateEk()更新oS.eCache[j]，标记该alpha已经过更新，且记录下新的Ej        added this for the Ecache
+        if (abs(oS.alphas[j] - alphaJold) < 0.00001): print("j not moving enough"); return 0  #若alphas[j]新旧值相比变化太小，当前j不是要找的内层alpha下标值，结束本次循环
+        oS.alphas[i] += oS.labelMat[j]*oS.labelMat[i]*(alphaJold - oS.alphas[j]) #根据新的alphas[j]计算新的alphas[i]值，并以此更新对象oS中的alphas[i]（alphas[i]和alphas[j]增量的大小相同，符号相反）
+        updateEk(oS, i) #oS中的alphas[i]更新后，重新计算对应样本的预测值和误差值，并调用updateEk()更新oS.eCache[i]，标记该alpha已经过更新，且记录下新的Ei                
+        b1 = oS.b - Ei- oS.labelMat[i]*(oS.alphas[i]-alphaIold)*oS.K[i,i] - oS.labelMat[j]*(oS.alphas[j]-alphaJold)*oS.K[i,j]  #计算新的b1
+        b2 = oS.b - Ej- oS.labelMat[i]*(oS.alphas[i]-alphaIold)*oS.K[i,j]- oS.labelMat[j]*(oS.alphas[j]-alphaJold)*oS.K[j,j]  #计算新的b2
+        if (0 < oS.alphas[i]) and (oS.C > oS.alphas[i]): oS.b = b1  #任一取值范围在(0,C)的alpha对应的样例都是支持向量，对应约束条件得出的b均为超平面的正确参数
         elif (0 < oS.alphas[j]) and (oS.C > oS.alphas[j]): oS.b = b2
-        else: oS.b = (b1 + b2)/2.0
-        return 1
-    else: return 0
+        else: oS.b = (b1 + b2)/2.0  #如果alpha=0或C,那么b1new和b2new均符合KKT条件,此时选择它们的中点作为bnew
+        return 1  #循环结束，本次循环已找到满足要求的j
+    else: return 0  #alpha[i]不合理，退出循环，需要重新选择另一外循环alpha
 
-def smoP(dataMatIn, classLabels, C, toler, maxIter,kTup=('lin', 0)):    #full Platt SMO
-    oS = optStruct(mat(dataMatIn),mat(classLabels).transpose(),C,toler, kTup)
-    iter = 0
-    entireSet = True; alphaPairsChanged = 0
-    while (iter < maxIter) and ((alphaPairsChanged > 0) or (entireSet)):
+def smoP(dataMatIn, classLabels, C, toler, maxIter,kTup=('lin', 0)):    #SMO算法实现
+    oS = optStruct(mat(dataMatIn),mat(classLabels).transpose(),C,toler, kTup)  #初始化optStruct对象oS
+    iter = 0 #记录alpha未成功更新的循环次数，只要有更新，该值就会被置0，连续多次未更新，该值会持续增加，当此变量值达到maxIter，也就是最大循环次数时，表明所有alpha更新完成，退出while循环，此函数结束运行
+    entireSet = True #entireSet决定是否要完整遍历alpha列表
+    alphaPairsChanged = 0 #记录当前alpha对是否已成功优化 
+    while (iter < maxIter) and ((alphaPairsChanged > 0) or (entireSet)):  #while循环退出条件：1.迭代次数超过指定的最大值maxIter  2.
         alphaPairsChanged = 0
-        if entireSet:   #go over all
-            for i in range(oS.m):        
-                alphaPairsChanged += innerL(i,oS)
-                print("fullSet, iter: %d i:%d, pairs changed %d" % (iter,i,alphaPairsChanged))
-            iter += 1
-        else:#go over non-bound (railed) alphas
-            nonBoundIs = nonzero((oS.alphas.A > 0) * (oS.alphas.A < C))[0]
+        if entireSet:   #首次迭代，entireSet=True，外循环的alpha[i]均未更新，需要遍历整个列表    ##### 为什么这里需要完全遍历    go over all
+            for i in range(oS.m):  
+                alphaPairsChanged += innerL(i,oS)  #调用innerL(),若成功更新了oS.alphas[i]、oS.alphas[j]以及其他参数Ei、Ej、b，alphaPairsChanged+1
+                print("fullSet, iter: %d i:%d, pairs changed %d" % (iter,i,alphaPairsChanged)) #打印本次循环结果
+            iter += 1 #不管是否有alpha对成功被优化，迭代计数器iter均会+1
+        else: #entireSet=False，只需再优化未成功更新的alpha         go over non-bound (railed) alphas
+            nonBoundIs = nonzero((oS.alphas.A > 0) * (oS.alphas.A < C))[0]  #减小需要优化计算的alpha[i]范围     
             for i in nonBoundIs:
-                alphaPairsChanged += innerL(i,oS)
-                print("non-bound, iter: %d i:%d, pairs changed %d" % (iter,i,alphaPairsChanged))
-            iter += 1
-        if entireSet: entireSet = False #toggle entire set loop
-        elif (alphaPairsChanged == 0): entireSet = True  
-        print("iteration number: %d" % iter)
-    return oS.b,oS.alphas
+                alphaPairsChanged += innerL(i,oS)  #调用innerL(),若成功更新了oS.alphas[i]、oS.alphas[j]以及其他参数Ei、Ej、b，alphaPairsChanged+1
+                print("non-bound, iter: %d i:%d, pairs changed %d" % (iter,i,alphaPairsChanged)) #打印本次循环结果
+            iter += 1 #不管是否有alpha对成功被优化，迭代计数器iter均会+1
+        if entireSet: entireSet = False #迭代一次后，若有alpha对成功被优化，entireSet置为false,下一次迭代不需遍历整个列表，   toggle entire set loop
+        elif (alphaPairsChanged == 0): entireSet = True  #否则，仍需需要遍历整个列表
+        print("iteration number: %d" % iter)  #打印当前迭代次数结果
+    return oS.b,oS.alphas #返回alpha和b
 
 def calcWs(alphas,dataArr,classLabels):
     X = mat(dataArr); labelMat = mat(classLabels).transpose()
