@@ -108,14 +108,14 @@ def selectJ(i, oS, Ei):         #本函数用于选择内循环的alpha        t
     validEcacheList = nonzero(oS.eCache[:,0].A)[0]  #oS.eCache[:,0].A表示取matrix eCache中第0列，并将其从matrix转换为array，使用nonzero()[0]返回其中非0元素的索引值组成的列表
     if (len(validEcacheList)) > 1: #非0元素个数大于1，有效的Ei不止1个
         for k in validEcacheList:   #遍历非0元素的索引，用以找到使delta E最大的Ej   loop through valid Ecache values and find the one that maximizes delta E
-            if k == i: continue #Ei不再参与计算 don't calc for i, waste of time
+            if k == i: continue #Ei不再参与计算 
             Ek = calcEk(oS, k) #调用calcEk()计算误差Ek
             deltaE = abs(Ei - Ek)  #计算误差增量deltaE
             if (deltaE > maxDeltaE):  #若本次循环计算得到的最新deltaE大于上一轮的值，则更新maxK、maxDeltaE、Ej为当前计算所得
                 maxK = k; maxDeltaE = deltaE; Ej = Ek
         return maxK, Ej  #返回找到的内层循环的aloha下标maxK和对应误差值Ej
-    else:   #刚开始计算时，误差缓存eCache中没有足够的有效值(第一列标志位均为0)，本算法采用的方式是随机选择一个alpha      in this case (first time around) we don't have any valid eCache values
-        j = selectJrand(i, oS.m) #调用selectJrand()随机选取不同于i的下标作为内层alpha下标
+    else:   #刚开始计算时，误差缓存eCache中没有足够的有效值(第一列标志位均为0)，本算法采用的方式是随机选择一个alpha作内循环数据      in this case (first time around) we don't have any valid eCache values
+        j = selectJrand(i, oS.m) #调用selectJrand()随机选取不同于i的下标作为内层alpha下标j
         Ej = calcEk(oS, j) #调用calcEk()计算误差Ej
     return j, Ej #返回找到的内层循环的aloha下标j和对应误差值Ej
 
@@ -123,10 +123,10 @@ def updateEk(oS, k): #重新计算Ek并存入缓存eCache         after any alph
     Ek = calcEk(oS, k)
     oS.eCache[k] = [1,Ek]
         
-def innerL(i, oS):   #本函数寻找合适的内循环下标j，i是外层循环变量，oS是optStruct类对象
+def innerL(i, oS):   #本函数寻找合适的内循环下标j。i是外层循环变量，oS是optStruct类对象
     Ei = calcEk(oS, i)  #调用calcEk()计算预测误差Ei
     if ((oS.labelMat[i]*Ei < -oS.tol) and (oS.alphas[i] < oS.C)) or ((oS.labelMat[i]*Ei > oS.tol) and (oS.alphas[i] > 0)):  #选择误差oS.tol允许的支持向量
-        j,Ej = selectJ(i, oS, Ei) #这里调用selectJ()选择内循环的alpha下标j (不同于简单版本SMO调用selectJrand())
+        j,Ej = selectJ(i, oS, Ei) #这里调用selectJ()选择内循环的alpha下标j，这里选择的alpha尽量满足 max(|Ei-Ej|)  (不同于简单版本SMO调用selectJrand())
         alphaIold = oS.alphas[i].copy(); alphaJold = oS.alphas[j].copy();  #保存alpha[i]、alpha[j]的旧值
         if (oS.labelMat[i] != oS.labelMat[j]):   #根据SMO算法中子问题约束条件alpha取值[0,C],sum(alphas*labelMat)=0,以及标签值labelMat[i]、labelMat[j]关系,可以得到两种情况下alpha新值的取值范围[L,H],两种情况分别为labelMat[i]、labelMat[j]相等和不等
             L = max(0, oS.alphas[j] - oS.alphas[i])
@@ -153,28 +153,28 @@ def innerL(i, oS):   #本函数寻找合适的内循环下标j，i是外层循�
 
 def smoP(dataMatIn, classLabels, C, toler, maxIter,kTup=('lin', 0)):    #SMO算法实现
     oS = optStruct(mat(dataMatIn),mat(classLabels).transpose(),C,toler, kTup)  #初始化optStruct对象oS
-    iter = 0 #记录alpha未成功更新的循环次数，只要有更新，该值就会被置0，连续多次未更新，该值会持续增加，当此变量值达到maxIter，也就是最大循环次数时，表明所有alpha更新完成，退出while循环，此函数结束运行
+    iter = 0 #记录alpha未成功更新的循环次数，只要有更新，该值就会被置0，连续多次未更新，该值会持续增加，当此变量值达到maxIter，也就是设置的最大循环次数时，表明所有alpha无需再更新，退出while循环，此函数结束运行
     entireSet = True #entireSet决定是否要完整遍历alpha列表
     alphaPairsChanged = 0 #记录当前alpha对是否已成功优化 
-    while (iter < maxIter) and ((alphaPairsChanged > 0) or (entireSet)):  #while循环退出条件：1.迭代次数超过指定的最大值maxIter  2.
+    while (iter < maxIter) and ((alphaPairsChanged > 0) or (entireSet)):  #while循环退出条件：1.迭代次数iter超过指定的最大值maxIter  2.遍历整个集合都未对任意alpha做出修改
         alphaPairsChanged = 0
         if entireSet:   #首次迭代，entireSet=True，外循环的alpha[i]均未更新，需要遍历整个列表    ##### 为什么这里需要完全遍历    go over all
             for i in range(oS.m):  
                 alphaPairsChanged += innerL(i,oS)  #调用innerL(),若成功更新了oS.alphas[i]、oS.alphas[j]以及其他参数Ei、Ej、b，alphaPairsChanged+1
                 print("fullSet, iter: %d i:%d, pairs changed %d" % (iter,i,alphaPairsChanged)) #打印本次循环结果
             iter += 1 #不管是否有alpha对成功被优化，迭代计数器iter均会+1
-        else: #entireSet=False，只需再优化未成功更新的alpha         go over non-bound (railed) alphas
-            nonBoundIs = nonzero((oS.alphas.A > 0) * (oS.alphas.A < C))[0]  #减小需要优化计算的alpha[i]范围     
-            for i in nonBoundIs:
+        else: #entireSet=False         go over non-bound (railed) alphas
+            nonBoundIs = nonzero((oS.alphas.A > 0) * (oS.alphas.A < C))[0]  #减小需要优化计算的alpha范围，遍历所有非边界alpha值，也就是不在边界0或C上的值     
+            for i in nonBoundIs: #
                 alphaPairsChanged += innerL(i,oS)  #调用innerL(),若成功更新了oS.alphas[i]、oS.alphas[j]以及其他参数Ei、Ej、b，alphaPairsChanged+1
                 print("non-bound, iter: %d i:%d, pairs changed %d" % (iter,i,alphaPairsChanged)) #打印本次循环结果
             iter += 1 #不管是否有alpha对成功被优化，迭代计数器iter均会+1
-        if entireSet: entireSet = False #迭代一次后，若有alpha对成功被优化，entireSet置为false,下一次迭代不需遍历整个列表，   toggle entire set loop
-        elif (alphaPairsChanged == 0): entireSet = True  #否则，仍需需要遍历整个列表
-        print("iteration number: %d" % iter)  #打印当前迭代次数结果
+        if entireSet: entireSet = False #entireSet=True，表明当前是第一次迭代，之后entireSet置为false,下一次迭代不需遍历整个alpha列表，   toggle entire set loop
+        elif (alphaPairsChanged == 0): entireSet = True  #entireSet=False,但是第iter次迭代没有成功更新的alpha对，下一次需要遍历整个列表  
+        print("iteration number: %d" % iter)  #打印当前已进行的总的迭代次数
     return oS.b,oS.alphas #返回alpha和b
 
-def calcWs(alphas,dataArr,classLabels):
+def calcWs(alphas,dataArr,classLabels): #基于alpha计算w
     X = mat(dataArr); labelMat = mat(classLabels).transpose()
     m,n = shape(X)
     w = zeros((n,1))
