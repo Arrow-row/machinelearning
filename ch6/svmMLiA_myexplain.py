@@ -37,7 +37,7 @@ def smoSimple(dataMatIn, classLabels, C, toler, maxIter):  #简化版SMO算法�
     while (iter < maxIter):
         alphaPairsChanged = 0 #记录alpha是否已经进行优化
         for i in range(m):
-            fXi = float(multiply(alphas,labelMat).T*(dataMatrix*dataMatrix[i,:].T)) + b  #fXi计算样本i的预测值,是一个数值,使用了决策函数F(x)=sign(w^T*x+b),w=sum(ai*yi*xi),i=1,2...N;multiply(alphas,labelMat).T中,alphas,labelMat均是mx1的列向量,alphas是0向量,labelMat是标签向量,使用multiply使矩阵对应位置元素相乘,再使用.T将结果转置为1xm行向量;dataMatrix*dataMatrix[i,:].T中,dataMatrix与其第i行转置后做矩阵乘法,结果是mx1列向量;
+            fXi = float(multiply(alphas,labelMat).T*(dataMatrix*dataMatrix[i,:].T)) + b  #fXi计算样本i的预测值,是一个数值,使用了预测函数g(x)=w*x+b,w=sum(ai*yi*xi),i=1,2...N;multiply(alphas,labelMat).T中,alphas,labelMat均是mx1的列向量,alphas是0向量,labelMat是标签向量,使用multiply使矩阵对应位置元素相乘,再使用.T将结果转置为1xm行向量;dataMatrix*dataMatrix[i,:].T中,dataMatrix与其第i行转置后做矩阵乘法,结果是mx1列向量;
             Ei = fXi - float(labelMat[i]) #预测结果与真实标签作差，得到预测误差Ei    if checks if an example violates KKT conditions
             if ((labelMat[i]*Ei < -toler) and (alphas[i] < C)) or ((labelMat[i]*Ei > toler) and (alphas[i] > 0)): #检测预测误差Ei是否超过预设的容忍度,若超过,则对样本i对应的alpha[i]进行优化;同时检查alpha值，使其不能等于0或C。alpha取值为(0,C)时，当前样本为支持向量，应满足labelMat[i]*Ei=0，这里toler是计算精度允许的误差范围
                 j = selectJrand(i,m) #利用selectJrand()随机选择第2个alpha值，即alpha[j]
@@ -174,12 +174,12 @@ def smoP(dataMatIn, classLabels, C, toler, maxIter,kTup=('lin', 0)):    #SMO算�
         print("iteration number: %d" % iter)  #打印当前已进行的总的迭代次数
     return oS.b,oS.alphas #返回alpha和b
 
-def calcWs(alphas,dataArr,classLabels): #基于alpha计算w
+def calcWs(alphas,dataArr,classLabels): #基于alpha计算w,应用w的求解公式 w=sum(alpha[i]*y[i]*x[i]),i=1,2..N
     X = mat(dataArr); labelMat = mat(classLabels).transpose()
-    m,n = shape(X)
-    w = zeros((n,1))
+    m,n = shape(X)  #m为样本数量，n为特征数量对于测试文本testSet.txt中的数据，计算得到 m = 100 , n = 2
+    w = zeros((n,1)) #array类型数组,shape=(n, 1) 
     for i in range(m):
-        w += multiply(alphas[i]*labelMat[i],X[i,:].T)
+        w += multiply(alphas[i]*labelMat[i],X[i,:].T)  #求得w  <class 'numpy.ndarray'>
     return w
 
 def testRbf(k1=1.3):
