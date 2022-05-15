@@ -188,15 +188,15 @@ def testRbf(k1=1.3): #构建径向基核函数分类器，对非线性可分数�
     datMat=mat(dataArr); labelMat = mat(labelArr).transpose() #输入列表类型数据转换为矩阵matrix类型
     svInd=nonzero(alphas.A>0)[0] #使用nonzero()[0]返回alphas非0元素的索引值组成的列表,.A将matrix类型转换为array类型
     sVs=datMat[svInd] #根据大于0的alpha的索引获取样本数据集中的支持向量,得到支持向量matrix矩阵sVs   get matrix of only support vectors
-    labelSV = labelMat[svInd]; #根据大于0的alpha的索引在样本标签向量中获取的支持向量的标签值,得到标签值矩阵labelSV
-    print("there are %d Support Vectors" % shape(sVs)[0]) #通过shape(sVs)[0]获取支持向量个数并打印
+    labelSV = labelMat[svInd]; #根据大于0的alpha的索引在样本标签向量中获取支持向量的标签值,得到标签值矩阵labelSV
+    print("there are %d Support Vectors" % shape(sVs)[0]) #通过shape(sVs)[0]获取原样本数据集中支持向量个数并打印
     m,n = shape(datMat)
     errorCount = 0
     for i in range(m):  #依次获取数据集datMat中样本i
         kernelEval = kernelTrans(sVs,datMat[i,:],('rbf', k1)) #使用支持向量矩阵sVs计算径向基核函数
         predict=kernelEval.T * multiply(labelSV,alphas[svInd]) + b #使用支持向量矩阵sVs计算分类预测值，因为分离超平面中的b值根据支持向量的特征向量和标签值求得，所以决策函数可仅由支持向量计算。参见李航《统计学习方法》v.2 p122
-        if sign(predict)!=sign(labelArr[i]): errorCount += 1 #判断预测结果是否正确
-    print("the training error rate is: %f" % (float(errorCount)/m)) #打印分类器错误率
+        if sign(predict)!=sign(labelArr[i]): errorCount += 1 #用符号函数进行对预测值进行+1、-1判别，并结合实际labelArr[i]判断预测结果是否正确
+    print("the training error rate is: %f" % (float(errorCount)/m)) #计算并打印训练集上分类器错误率
     dataArr,labelArr = loadDataSet('testSetRBF2.txt') #从文件testSetRBF2.txt中解析数据，得到样本矩阵和标签向量（测试数据集），下面在测试集上应用前面得到的b和alpha进行测试
     errorCount = 0
     datMat=mat(dataArr); labelMat = mat(labelArr).transpose()
@@ -205,7 +205,7 @@ def testRbf(k1=1.3): #构建径向基核函数分类器，对非线性可分数�
         kernelEval = kernelTrans(sVs,datMat[i,:],('rbf', k1))
         predict=kernelEval.T * multiply(labelSV,alphas[svInd]) + b
         if sign(predict)!=sign(labelArr[i]): errorCount += 1    
-    print("the test error rate is: %f" % (float(errorCount)/m))    
+    print("the test error rate is: %f" % (float(errorCount)/m)) #计算并打印测试集上分类器错误率
     
 def img2vector(filename): #此函数将32×32的二进制图像矩阵转换为1×1024的数组，filename是存储图片01像素的.txt文件
     returnVect = zeros((1,1024)) #创建二维数组returnVect,shape=(1,1024)
@@ -231,22 +231,22 @@ def loadImages(dirName): #此函数获取手写数字训练样本集数据和标
         trainingMat[i,:] = img2vector('%s/%s' % (dirName, fileNameStr)) #调用img2vector()函数，将当前文件内容转换为1x1024的向量后，存于训练矩阵trainingMat
     return trainingMat, hwLabels    #返回训练集数据矩阵trainingMat和训练集标签hwLabels
 
-def testDigits(kTup=('rbf', 10)):
-    dataArr,labelArr = loadImages('trainingDigits')
-    b,alphas = smoP(dataArr, labelArr, 200, 0.0001, 10000, kTup)
-    datMat=mat(dataArr); labelMat = mat(labelArr).transpose()
-    svInd=nonzero(alphas.A>0)[0]
-    sVs=datMat[svInd] 
-    labelSV = labelMat[svInd];
-    print("there are %d Support Vectors" % shape(sVs)[0])
+def testDigits(kTup=('rbf', 10)): #使用SVM构建手写数字分类器，可指定核函数类型元组kTup，不指定时kTup默认值为('rbf', 10)
+    dataArr,labelArr = loadImages('trainingDigits') #获取手写数字训练样本集数据和标签向量，用于训练alpha和b，训练样本的全部.txt文件在文件夹trainingDigits下
+    b,alphas = smoP(dataArr, labelArr, 200, 0.0001, 10000, kTup) #调用smoP()计算alpha和b
+    datMat=mat(dataArr); labelMat = mat(labelArr).transpose() #将解析得到的列表类型数据dataArr,labelArr转换为矩阵matrix类型
+    svInd=nonzero(alphas.A>0)[0] #使用nonzero()[0]返回alphas非0元素的索引值组成的列表,.A将matrix类型转换为array类型
+    sVs=datMat[svInd] #根据大于0的alpha的索引获取原样本数据集中的支持向量,得到支持向量matrix矩阵sVs
+    labelSV = labelMat[svInd]; #根据大于0的alpha的索引在样本标签向量中获取支持向量的标签值,得到标签值矩阵labelSV
+    print("there are %d Support Vectors" % shape(sVs)[0]) #通过shape(sVs)[0]获取原样本数据集中支持向量个数并打印
     m,n = shape(datMat)
-    errorCount = 0
-    for i in range(m):
-        kernelEval = kernelTrans(sVs,datMat[i,:],kTup)
-        predict=kernelEval.T * multiply(labelSV,alphas[svInd]) + b
-        if sign(predict)!=sign(labelArr[i]): errorCount += 1
-    print("the training error rate is: %f" % (float(errorCount)/m))
-    dataArr,labelArr = loadImages('testDigits')
+    errorCount = 0 #errorCount记录预测错误次数，用于计算错误率
+    for i in range(m): #依次获取数据集datMat中样本i
+        kernelEval = kernelTrans(sVs,datMat[i,:],kTup) #调用kernelTrans()，使用支持向量矩阵sVs计算核函数
+        predict=kernelEval.T * multiply(labelSV,alphas[svInd]) + b #使用支持向量矩阵sVs计算分类预测值，因为分离超平面中的b值根据支持向量的特征向量和标签值求得，所以决策函数可仅由支持向量计算。参见李航《统计学习方法》v.2 p122
+        if sign(predict)!=sign(labelArr[i]): errorCount += 1 #用符号函数进行对预测值进行+1、-1判别，并结合实际labelArr[i]判断预测结果是否正确
+    print("the training error rate is: %f" % (float(errorCount)/m)) #计算并打印训练集上分类器错误率
+    dataArr,labelArr = loadImages('testDigits') #获取手写数字测试样本集数据和标签向量，训练样本的全部.txt文件在文件夹testDigits下，下面在测试集上应用前面得到的b和alpha进行测试
     errorCount = 0
     datMat=mat(dataArr); labelMat = mat(labelArr).transpose()
     m,n = shape(datMat)
@@ -254,7 +254,7 @@ def testDigits(kTup=('rbf', 10)):
         kernelEval = kernelTrans(sVs,datMat[i,:],kTup)
         predict=kernelEval.T * multiply(labelSV,alphas[svInd]) + b
         if sign(predict)!=sign(labelArr[i]): errorCount += 1    
-    print("the test error rate is: %f" % (float(errorCount)/m)) 
+    print("the test error rate is: %f" % (float(errorCount)/m)) #计算并打印测试集上分类器错误率
 
 
 '''#######********************************
