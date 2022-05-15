@@ -14,6 +14,8 @@ ws=
  [[ 0.79217255]
  [-0.25433037]]
  '''
+print("\nb= \n",b)
+print("type of b:",type(b))
 
 dataMat=mat(dataArr)
 labelMat=mat(labelArr).transpose()
@@ -21,14 +23,17 @@ c=dataMat[0]*mat(ws)+b
 print("\nthe estimate result fX= ",c)
 print("the prictical label=",labelArr[0])
 
-print(type(b)) #<class 'numpy.matrixlib.defmatrix.matrix'>
-print(type(alphas)) #<class 'numpy.matrixlib.defmatrix.matrix'>
+#print(type(b)) #<class 'numpy.matrixlib.defmatrix.matrix'>
+print("type of alphas:",type(alphas)) #<class 'numpy.matrixlib.defmatrix.matrix'>
 svInd=nonzero(alphas.A>0)[0] 
 print(svInd) #[ 8 17 29 52 54 55]
 sVs=dataMat[svInd]
-labelSV = labelMat[svInd]
 print(sVs)
+print("type of sVs:",type(sVs))
+labelSV = labelMat[svInd]
 print(labelSV)
+print("type of labelSV:",type(labelSV))
+
 
 '''
 print("b*=")
