@@ -7,13 +7,28 @@ dataArr,labelArr = svmMLiA.loadDataSet('testSet.txt')  #测试文本共100条数
 b,alphas = svmMLiA.smoP(dataArr,labelArr,0.6,0.001,40)
 ws=svmMLiA.calcWs(alphas,dataArr,labelArr)
 
-print("\n ws= \n",ws)
-print("type of ws:",type(ws))
+print("\nws= \n",ws)
+print("type of ws:",type(ws)) #type of ws: <class 'numpy.ndarray'>
+'''
+ws=
+ [[ 0.79217255]
+ [-0.25433037]]
+ '''
 
 dataMat=mat(dataArr)
+labelMat=mat(labelArr).transpose()
 c=dataMat[0]*mat(ws)+b 
 print("\nthe estimate result fX= ",c)
-print("the prictical class",labelArr[0])
+print("the prictical label=",labelArr[0])
+
+print(type(b)) #<class 'numpy.matrixlib.defmatrix.matrix'>
+print(type(alphas)) #<class 'numpy.matrixlib.defmatrix.matrix'>
+svInd=nonzero(alphas.A>0)[0] 
+print(svInd) #[ 8 17 29 52 54 55]
+sVs=dataMat[svInd]
+labelSV = labelMat[svInd]
+print(sVs)
+print(labelSV)
 
 '''
 print("b*=")

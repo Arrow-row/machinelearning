@@ -70,21 +70,21 @@ def smoSimple(dataMatIn, classLabels, C, toler, maxIter):  #简化版SMO算法�
         print("iteration number: %d" % iter)
     return b,alphas  #返回alpha和b
 
-def kernelTrans(X, A, kTup): #calc the kernel or transform data to a higher dimensional space
-    m,n = shape(X)
-    K = mat(zeros((m,1)))
-    if kTup[0]=='lin': K = X * A.T   #linear kernel
-    elif kTup[0]=='rbf':
+def kernelTrans(X, A, kTup): #计算核函数，用以将地位特征空间转换到高维。元组kTup给出核函数相关的信息，如kTup[0]表示核函数类型，kTup[0]='lin'代表线性核函数，kTup[0]='rbf'代表径向基核函数    calc the kernel or transform data to a higher dimensional space
+    m,n = shape(X) #m为样本数量，n为特征数量，对于测试文本testSet.txt中的数据，计算得到 m = 100 , n = 2
+    K = mat(zeros((m,1))) #构建mx1的0矩阵K
+    if kTup[0]=='lin': K = X * A.T   #线性核函数计算公式为 K = X * A.T ，其中X为整个样本特征矩阵，A为一个样本特征向量，采用矩阵乘法，计算结果为100x1的列向量       linear kernel
+    elif kTup[0]=='rbf': #径向基核函数，在for循环中对矩阵的每个元素计算高斯函数的值
         for j in range(m):
             deltaRow = X[j,:] - A
             K[j] = deltaRow*deltaRow.T
         K = exp(K/(-1*kTup[1]**2)) #divide in NumPy is element-wise not matrix like Matlab
     else: raise NameError('Houston We Have a Problem -- \
-    That Kernel is not recognized')
+    That Kernel is not recognized') #对未定义的核函数类型抛出异常
     return K
 
 class optStruct:  #结构化数据，便于使用
-    def __init__(self,dataMatIn, classLabels, C, toler, kTup):  #用输入参数初始化类的属性值，self可看作java中的this。  Initialize the structure with the parameters 
+    def __init__(self,dataMatIn, classLabels, C, toler, kTup):  #用输入参数初始化类的属性值，self可看作java中的this。kTup是一个包含核函数信息的元组   Initialize the structure with the parameters 
         self.X = dataMatIn
         self.labelMat = classLabels
         self.C = C
@@ -93,19 +93,19 @@ class optStruct:  #结构化数据，便于使用
         self.alphas = mat(zeros((self.m,1)))
         self.b = 0
         self.eCache = mat(zeros((self.m,2))) #eCache为缓存矩阵，缓存误差值Ei，用于选择alpha时计算最大的Ei-Ej;eCache为m行2列，第1列是eCache是否有效的标识，第2列是实际的E值
-        self.K = mat(zeros((self.m,self.m)))
-        for i in range(self.m):
+        self.K = mat(zeros((self.m,self.m))) #构建mxm矩阵K，用于预先存储核函数计算结果，如线性核K[i,j]=dataMatrix[i,:]*dataMatrix[j,:].T。全局K值只需计算一次，使用时直接调用，除必要的计算外，省去冗余的计算开销
+        for i in range(self.m): #调用kernelTrans()依次计算第i个样本的核函数，结果存入K矩阵的第i列。
             self.K[:,i] = kernelTrans(self.X, self.X[i,:], kTup)
         
 def calcEk(oS, k): #本函数计算并返回预测误差Ek值，oS是optStruct类对象，k是迭代变量
-    fXk = float(multiply(oS.alphas,oS.labelMat).T*oS.K[:,k] + oS.b)  #计算预测值   为什么乘以oS.K[:,k]    注意K大写小写
+    fXk = float(multiply(oS.alphas,oS.labelMat).T*oS.K[:,k] + oS.b)  #计算预测值，采用核技巧，用oS.K[:,k]代替smoSimple()中对应的dataMatrix*dataMatrix[i,:].T    注意K大小写
     Ek = fXk - float(oS.labelMat[k])
     return Ek
         
 def selectJ(i, oS, Ei):         #本函数用于选择内循环的alpha        this is the second choice -heurstic, and calcs Ej
     maxK = -1; maxDeltaE = 0; Ej = 0
     oS.eCache[i] = [1,Ei]  #输入参数Ei值存入oS.eCache[i]并设置为有效的，有效的意思是已经计算好    set valid #choose the alpha that gives the maximum delta E
-    validEcacheList = nonzero(oS.eCache[:,0].A)[0]  #oS.eCache[:,0].A表示取matrix eCache中第0列，并将其从matrix转换为array，使用nonzero()[0]返回其中非0元素的索引值组成的列表
+    validEcacheList = nonzero(oS.eCache[:,0].A)[0]  #oS.eCache[:,0]表示取matrix eCache中第0列，.A表示将其从matrix转换为array，使用nonzero()[0]返回其中非0元素的索引值组成的列表
     if (len(validEcacheList)) > 1: #非0元素个数大于1，有效的Ei不止1个
         for k in validEcacheList:   #遍历非0元素的索引，用以找到使delta E最大的Ej   loop through valid Ecache values and find the one that maximizes delta E
             if k == i: continue #Ei不再参与计算 
@@ -143,15 +143,15 @@ def innerL(i, oS):   #本函数寻找合适的内循环下标j。i是外层循�
         if (abs(oS.alphas[j] - alphaJold) < 0.00001): print("j not moving enough"); return 0  #若alphas[j]新旧值相比变化太小，当前j不是要找的内层alpha下标值，结束本次循环
         oS.alphas[i] += oS.labelMat[j]*oS.labelMat[i]*(alphaJold - oS.alphas[j]) #根据新的alphas[j]计算新的alphas[i]值，并以此更新对象oS中的alphas[i]（alphas[i]和alphas[j]增量的大小相同，符号相反）
         updateEk(oS, i) #oS中的alphas[i]更新后，重新计算对应样本的预测值和误差值，并调用updateEk()更新oS.eCache[i]，标记该alpha已经过更新，且记录下新的Ei                
-        b1 = oS.b - Ei- oS.labelMat[i]*(oS.alphas[i]-alphaIold)*oS.K[i,i] - oS.labelMat[j]*(oS.alphas[j]-alphaJold)*oS.K[i,j]  #计算新的b1
-        b2 = oS.b - Ej- oS.labelMat[i]*(oS.alphas[i]-alphaIold)*oS.K[i,j]- oS.labelMat[j]*(oS.alphas[j]-alphaJold)*oS.K[j,j]  #计算新的b2
+        b1 = oS.b - Ei- oS.labelMat[i]*(oS.alphas[i]-alphaIold)*oS.K[i,i] - oS.labelMat[j]*(oS.alphas[j]-alphaJold)*oS.K[i,j]  #计算新的b1，采用核技巧，用oS.K[i,i]代替smoSimple()中对应的dataMatrix[i,:]*dataMatrix[i,:].T
+        b2 = oS.b - Ej- oS.labelMat[i]*(oS.alphas[i]-alphaIold)*oS.K[i,j]- oS.labelMat[j]*(oS.alphas[j]-alphaJold)*oS.K[j,j]  #计算新的b2，采用核技巧，用oS.K[i,i]代替smoSimple()中对应的dataMatrix[i,:]*dataMatrix[i,:].T
         if (0 < oS.alphas[i]) and (oS.C > oS.alphas[i]): oS.b = b1  #任一取值范围在(0,C)的alpha对应的样例都是支持向量，对应约束条件得出的b均为超平面的正确参数
         elif (0 < oS.alphas[j]) and (oS.C > oS.alphas[j]): oS.b = b2
         else: oS.b = (b1 + b2)/2.0  #如果alpha=0或C,那么b1new和b2new均符合KKT条件,此时选择它们的中点作为bnew
         return 1  #循环结束，本次循环已找到满足要求的j
     else: return 0  #alpha[i]不合理，退出循环，需要重新选择另一外循环alpha
 
-def smoP(dataMatIn, classLabels, C, toler, maxIter,kTup=('lin', 0)):    #SMO算法实现
+def smoP(dataMatIn, classLabels, C, toler, maxIter,kTup=('lin', 0)):    #SMO算法实现。元组kTup第一个元素为lin表示所用核函数为线性核
     oS = optStruct(mat(dataMatIn),mat(classLabels).transpose(),C,toler, kTup)  #初始化optStruct对象oS
     iter = 0 #记录alpha未成功更新的循环次数，只要有更新，该值就会被置0，连续多次未更新，该值会持续增加，当此变量值达到maxIter，也就是设置的最大循环次数时，表明所有alpha无需再更新，退出while循环，此函数结束运行
     entireSet = True #entireSet决定是否要完整遍历alpha列表
@@ -176,23 +176,23 @@ def smoP(dataMatIn, classLabels, C, toler, maxIter,kTup=('lin', 0)):    #SMO算�
 
 def calcWs(alphas,dataArr,classLabels): #基于alpha计算w,应用w的求解公式 w=sum(alpha[i]*y[i]*x[i]),i=1,2..N
     X = mat(dataArr); labelMat = mat(classLabels).transpose()
-    m,n = shape(X)  #m为样本数量，n为特征数量对于测试文本testSet.txt中的数据，计算得到 m = 100 , n = 2
+    m,n = shape(X)  #m为样本数量，n为特征数量，对于测试文本testSet.txt中的数据，计算得到 m = 100 , n = 2
     w = zeros((n,1)) #array类型数组,shape=(n, 1) 
     for i in range(m):
         w += multiply(alphas[i]*labelMat[i],X[i,:].T)  #求得w  <class 'numpy.ndarray'>
     return w
 
-def testRbf(k1=1.3):
-    dataArr,labelArr = loadDataSet('testSetRBF.txt')
-    b,alphas = smoP(dataArr, labelArr, 200, 0.0001, 10000, ('rbf', k1)) #C=200 important
-    datMat=mat(dataArr); labelMat = mat(labelArr).transpose()
-    svInd=nonzero(alphas.A>0)[0]
-    sVs=datMat[svInd] #get matrix of only support vectors
-    labelSV = labelMat[svInd];
-    print("there are %d Support Vectors" % shape(sVs)[0])
+def testRbf(k1=1.3): #构建径向基核函数分类器，对非线性可分数据进行分类。输入参数是高斯径向基核函数中的一个用户自定义变量
+    dataArr,labelArr = loadDataSet('testSetRBF.txt') #从文件testSetRBF.txt中解析数据，得到样本矩阵和标签向量
+    b,alphas = smoP(dataArr, labelArr, 200, 0.0001, 10000, ('rbf', k1)) #调用smoP()计算alpha和b,采用径向基核函数    C=200 important
+    datMat=mat(dataArr); labelMat = mat(labelArr).transpose() #输入列表类型数据转换为矩阵matrix类型
+    svInd=nonzero(alphas.A>0)[0] #使用nonzero()[0]返回alphas非0元素的索引值组成的列表,.A将matrix类型转换为array类型
+    sVs=datMat[svInd] #根据大于0的alpha的索引获取样本数据集中的支持向量   get matrix of only support vectors
+    labelSV = labelMat[svInd]; #根据大于0的alpha的索引在样本标签向量中获取的支持向量的标签值
+    print("there are %d Support Vectors" % shape(sVs)[0]) #通过shape(sVs)[0]获取支持向量个数并打印
     m,n = shape(datMat)
     errorCount = 0
-    for i in range(m):
+    for i in range(m): 
         kernelEval = kernelTrans(sVs,datMat[i,:],('rbf', k1))
         predict=kernelEval.T * multiply(labelSV,alphas[svInd]) + b
         if sign(predict)!=sign(labelArr[i]): errorCount += 1
