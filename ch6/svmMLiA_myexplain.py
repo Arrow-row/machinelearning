@@ -183,21 +183,21 @@ def calcWs(alphas,dataArr,classLabels): #基于alpha计算w,应用w的求解公�
     return w
 
 def testRbf(k1=1.3): #构建径向基核函数分类器，对非线性可分数据进行分类。输入参数是高斯径向基核函数中的一个用户自定义变量
-    dataArr,labelArr = loadDataSet('testSetRBF.txt') #从文件testSetRBF.txt中解析数据，得到样本矩阵和标签向量
+    dataArr,labelArr = loadDataSet('testSetRBF.txt') #从文件testSetRBF.txt中解析数据，得到样本矩阵和标签向量（训练数据集），用于训练alpha和b
     b,alphas = smoP(dataArr, labelArr, 200, 0.0001, 10000, ('rbf', k1)) #调用smoP()计算alpha和b,采用径向基核函数    C=200 important
     datMat=mat(dataArr); labelMat = mat(labelArr).transpose() #输入列表类型数据转换为矩阵matrix类型
     svInd=nonzero(alphas.A>0)[0] #使用nonzero()[0]返回alphas非0元素的索引值组成的列表,.A将matrix类型转换为array类型
-    sVs=datMat[svInd] #根据大于0的alpha的索引获取样本数据集中的支持向量   get matrix of only support vectors
-    labelSV = labelMat[svInd]; #根据大于0的alpha的索引在样本标签向量中获取的支持向量的标签值
+    sVs=datMat[svInd] #根据大于0的alpha的索引获取样本数据集中的支持向量,得到支持向量matrix矩阵sVs   get matrix of only support vectors
+    labelSV = labelMat[svInd]; #根据大于0的alpha的索引在样本标签向量中获取的支持向量的标签值,得到标签值矩阵labelSV
     print("there are %d Support Vectors" % shape(sVs)[0]) #通过shape(sVs)[0]获取支持向量个数并打印
     m,n = shape(datMat)
     errorCount = 0
-    for i in range(m): 
-        kernelEval = kernelTrans(sVs,datMat[i,:],('rbf', k1))
-        predict=kernelEval.T * multiply(labelSV,alphas[svInd]) + b
-        if sign(predict)!=sign(labelArr[i]): errorCount += 1
-    print("the training error rate is: %f" % (float(errorCount)/m))
-    dataArr,labelArr = loadDataSet('testSetRBF2.txt')
+    for i in range(m):  #依次获取数据集datMat中样本i
+        kernelEval = kernelTrans(sVs,datMat[i,:],('rbf', k1)) #使用支持向量矩阵sVs计算径向基核函数
+        predict=kernelEval.T * multiply(labelSV,alphas[svInd]) + b #使用支持向量矩阵sVs计算分类预测值，因为分离超平面中的b值根据支持向量的特征向量和标签值求得，所以决策函数可仅由支持向量计算。参见李航《统计学习方法》v.2 p122
+        if sign(predict)!=sign(labelArr[i]): errorCount += 1 #判断预测结果是否正确
+    print("the training error rate is: %f" % (float(errorCount)/m)) #打印分类器错误率
+    dataArr,labelArr = loadDataSet('testSetRBF2.txt') #从文件testSetRBF2.txt中解析数据，得到样本矩阵和标签向量（测试数据集），下面在测试集上应用前面得到的b和alpha进行测试
     errorCount = 0
     datMat=mat(dataArr); labelMat = mat(labelArr).transpose()
     m,n = shape(datMat)
@@ -207,29 +207,29 @@ def testRbf(k1=1.3): #构建径向基核函数分类器，对非线性可分数�
         if sign(predict)!=sign(labelArr[i]): errorCount += 1    
     print("the test error rate is: %f" % (float(errorCount)/m))    
     
-def img2vector(filename):
-    returnVect = zeros((1,1024))
-    fr = open(filename)
-    for i in range(32):
-        lineStr = fr.readline()
-        for j in range(32):
-            returnVect[0,32*i+j] = int(lineStr[j])
-    return returnVect
+def img2vector(filename): #此函数将32×32的二进制图像矩阵转换为1×1024的数组，filename是存储图片01像素的.txt文件
+    returnVect = zeros((1,1024)) #创建二维数组returnVect,shape=(1,1024)
+    fr = open(filename) #以只读方式打开filename文件，返回文件对象fr，可通过该对象调用文件相关函数对文件进行操作
+    for i in range(32): #循环读出文件前32行
+        lineStr = fr.readline() #读取第i行内容，以字符串字符串赋给lineStr，包括 "\n" 字符
+        for j in range(32): #循环读取第i行的前32个字符
+            returnVect[0,32*i+j] = int(lineStr[j]) #依次将第i行的32个字符值存储在returnVect数组
+    return returnVect #返回数组returnVect，由整幅图片的01像素组成
 
-def loadImages(dirName):
-    from os import listdir
-    hwLabels = []
-    trainingFileList = listdir(dirName)           #load the training set
-    m = len(trainingFileList)
-    trainingMat = zeros((m,1024))
-    for i in range(m):
-        fileNameStr = trainingFileList[i]
-        fileStr = fileNameStr.split('.')[0]     #take off .txt
-        classNumStr = int(fileStr.split('_')[0])
-        if classNumStr == 9: hwLabels.append(-1)
-        else: hwLabels.append(1)
-        trainingMat[i,:] = img2vector('%s/%s' % (dirName, fileNameStr))
-    return trainingMat, hwLabels    
+def loadImages(dirName): #此函数获取手写数字训练样本集数据和标签向量，训练样本的.txt文件在文件夹dirname下
+    from os import listdir #listdir:os模块中用于处理目录的方法
+    hwLabels = [] #存储标签的列表
+    trainingFileList = listdir(dirName) #获取文件夹trainingDigits下训练集数据文件，将所有文本文件名以列表形式存储于trainingFileList。os模块的listdir方法获取指定目录(dirName)下的文件或文件夹的名字的列表       #load the training set
+    m = len(trainingFileList) #m为训练集文件数
+    trainingMat = zeros((m,1024)) #创建二维训练数据矩阵trainingMat，shape=(m,1024)
+    for i in range(m): #获取第i个训练集文件。本循环用于从文件名解析样本标签、获取训练矩阵
+        fileNameStr = trainingFileList[i] #fileNameStr表示样本文件名字符串。样本文件名形式为0_82.txt，0表示文件内是数字0的图像，82表示当前文件是数字0的第82个样本
+        fileStr = fileNameStr.split('.')[0]  #去掉'0_82.txt'中的.txt，用fileStr保存'0_82'   
+        classNumStr = int(fileStr.split('_')[0]) #去掉'0_82'中的_82，将'0'转换为int型后存于classNumstr，得到当前文件的标签
+        if classNumStr == 9: hwLabels.append(-1) #数字9的标签设置为-1存入hwLabels (SVM本质上是二分类器，这里只作二分类)
+        else: hwLabels.append(1) #除数字9外的其他数字标签设置为1存入hwLabels
+        trainingMat[i,:] = img2vector('%s/%s' % (dirName, fileNameStr)) #调用img2vector()函数，将当前文件内容转换为1x1024的向量后，存于训练矩阵trainingMat
+    return trainingMat, hwLabels    #返回训练集数据矩阵trainingMat和训练集标签hwLabels
 
 def testDigits(kTup=('rbf', 10)):
     dataArr,labelArr = loadImages('trainingDigits')
