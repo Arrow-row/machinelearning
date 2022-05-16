@@ -5,14 +5,14 @@ Adaboost is short for Adaptive Boosting
 '''
 from numpy import *
 
-def loadSimpData():
+def loadSimpData():  #构建简单数据集
     datMat = matrix([[ 1. ,  2.1],
         [ 2. ,  1.1],
         [ 1.3,  1. ],
         [ 1. ,  1. ],
-        [ 2. ,  1. ]])
-    classLabels = [1.0, 1.0, -1.0, -1.0, 1.0]
-    return datMat,classLabels
+        [ 2. ,  1. ]]) #样本特征矩阵
+    classLabels = [1.0, 1.0, -1.0, -1.0, 1.0] #类别标签
+    return datMat,classLabels #返回样本矩阵和对应标签列表
 
 def loadDataSet(fileName):      #general function to parse tab -delimited floats
     numFeat = len(open(fileName).readline().split('\t')) #get number of fields 
@@ -27,10 +27,10 @@ def loadDataSet(fileName):      #general function to parse tab -delimited floats
         labelMat.append(float(curLine[-1]))
     return dataMat,labelMat
 
-def stumpClassify(dataMatrix,dimen,threshVal,threshIneq):#just classify the data
-    retArray = ones((shape(dataMatrix)[0],1))
+def stumpClassify(dataMatrix,dimen,threshVal,threshIneq): #比较样本矩阵中第dimen维元素和阈值threshVal，对样本矩阵中数据进行划分
+    retArray = ones((shape(dataMatrix)[0],1)) #初始化array类型的返回数组retArray，元素全部设置为1
     if threshIneq == 'lt':
-        retArray[dataMatrix[:,dimen] <= threshVal] = -1.0
+        retArray[dataMatrix[:,dimen] <= threshVal] = -1.0 #数组过滤
     else:
         retArray[dataMatrix[:,dimen] > threshVal] = -1.0
     return retArray
