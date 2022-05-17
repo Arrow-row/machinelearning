@@ -14,18 +14,18 @@ def loadSimpData():  #构建简单数据集
     classLabels = [1.0, 1.0, -1.0, -1.0, 1.0] #类别标签
     return datMat,classLabels #返回样本矩阵和对应标签列表   <class 'numpy.matrixlib.defmatrix.matrix'>   <class 'list'>
 
-def loadDataSet(fileName):      #general function to parse tab -delimited floats
-    numFeat = len(open(fileName).readline().split('\t')) #get number of fields 
-    dataMat = []; labelMat = []
-    fr = open(fileName)
-    for line in fr.readlines():
+def loadDataSet(fileName):      #本函数用于解析由'\t'分隔的文本文件中的样本特征   
+    numFeat = len(open(fileName).readline().split('\t')) #open(fileName)打开文件fileName，readline()读取文件的一行，split('\t')将读取到的一行内容以'\t'分割，返回分割后的元素组成的列表，再以len获取列表长度，即单个样本中特征值个数
+    dataMat = []; labelMat = [] #用于存储数据标签的矩阵
+    fr = open(fileName) #以只读形式打开testSet.txt文件，返回文件对象fr，可通过该对象调用文件相关函数对文件进行操作
+    for line in fr.readlines(): #依次获取fr中每一行。fr.readlines()读取文件中所有行并以行内容作为元素返回一个列表
         lineArr =[]
-        curLine = line.strip().split('\t')
-        for i in range(numFeat-1):
+        curLine = line.strip().split('\t') #以'\t'字符对每行字符串进行切片，strip()去除首位空格，返回分割后的字符串列表给curLine
+        for i in range(numFeat-1): #获取样本特征值列表lineArr
             lineArr.append(float(curLine[i]))
-        dataMat.append(lineArr)
-        labelMat.append(float(curLine[-1]))
-    return dataMat,labelMat
+        dataMat.append(lineArr) #以lineArr组成样本特征值矩阵
+        labelMat.append(float(curLine[-1])) #获取样本标签向量
+    return dataMat,labelMat #返回样本特征值矩阵和标签向量
 
 def stumpClassify(dataMatrix,dimen,threshVal,threshIneq): #比较样本矩阵中第dimen维(列)元素(特征值)和阈值threshVal，对样本数据进行划分,dataMatrix是样本矩阵，dimen是特征维度，threshVal是阈值
     retArray = ones((shape(dataMatrix)[0],1)) #初始化array类型的返回数组retArray，元素全部设置为1
