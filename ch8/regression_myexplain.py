@@ -5,27 +5,28 @@ Created on Jan 8, 2011
 '''
 from numpy import *
 
-def loadDataSet(fileName):      #general function to parse tab -delimited floats
-    numFeat = len(open(fileName).readline().split('\t')) - 1 #get number of fields 
-    dataMat = []; labelMat = []
-    fr = open(fileName)
-    for line in fr.readlines():
-        lineArr =[]
-        curLine = line.strip().split('\t')
-        for i in range(numFeat):
-            lineArr.append(float(curLine[i]))
-        dataMat.append(lineArr)
-        labelMat.append(float(curLine[-1]))
-    return dataMat,labelMat
+def loadDataSet(fileName):      #本函数从文件中解析由'\t'分隔的浮点型数据，fileName是待解析的文件名
+    numFeat = len(open(fileName).readline().split('\t')) - 1 #获取单个样本的特征数量 
+    dataMat = []; labelMat = [] #用于存放数据和标签的矩阵
+    fr = open(fileName)  #调用open()，以只读形式打开ex0.txt文件，返回文件对象fr，可通过该对象调用文件相关函数对文件进行操作
+    for line in fr.readlines(): #依次获取fr中每一行。fr.readlines()读取.txt文件中所有行并以每一行内容作为元素返回一个列表
+        lineArr =[] #存放样本特征值的列表
+        curLine = line.strip().split('\t') #以'\t'字符对每行字符串进行切片，strip()去除首尾空格，返回分割后的字符串组成的列表给curLine
+        for i in range(numFeat): #遍历curLine中元素（不包含样本标签）
+            lineArr.append(float(curLine[i])) #curLine中元素从字符串转换为浮点型后，依次追加到lineArr，构成样本特征值列表
+        dataMat.append(lineArr) #由lineArr组成样本特征值矩阵
+        labelMat.append(float(curLine[-1])) #将curLine中最后一个元素转换为浮点型数据后添加到labelMat,形成样本标签向量
+    return dataMat,labelMat #返回特征值矩阵和样本标签
 
-def standRegres(xArr,yArr):
-    xMat = mat(xArr); yMat = mat(yArr).T
-    xTx = xMat.T*xMat
-    if linalg.det(xTx) == 0.0:
-        print("This matrix is singular, cannot do inverse")
+def standRegres(xArr,yArr): #本函数用于计算最佳拟合直线，xArr,yArr分别是loadDataSet()解析出的样本矩阵和标签向量
+    xMat = mat(xArr) #X矩阵：list转换为matrix
+    yMat = mat(yArr).T #Y向量：list转换为matrix并转置为列向量
+    xTx = xMat.T*xMat #计算X^T*X
+    if linalg.det(xTx) == 0.0: #计算并判断行列式X^T*X是否为0。linalg是numpy提供的线性代数库，函数det()用于计算行列式
+        print("This matrix is singular, cannot do inverse") #若行列式为0，打印信息：这个矩阵是奇异的不能做逆。退出函数
         return
-    ws = xTx.I * (xMat.T*yMat)
-    return ws
+    ws = xTx.I * (xMat.T*yMat) #行列式不为0，用回归系数w的求解公式计算出w
+    return ws #返回w
 
 def lwlr(testPoint,xArr,yArr,k=1.0):
     xMat = mat(xArr); yMat = mat(yArr).T
