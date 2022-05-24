@@ -28,29 +28,30 @@ def standRegres(xArr,yArr): #本函数用于计算最佳拟合直线，xArr,yArr
     ws = xTx.I * (xMat.T*yMat) #行列式不为0，用回归系数w的求解公式计算出w
     return ws #返回w
 
-def lwlr(testPoint,xArr,yArr,k=1.0):
-    xMat = mat(xArr); yMat = mat(yArr).T
-    m = shape(xMat)[0]
-    weights = mat(eye((m)))
-    for j in range(m):                      #next 2 lines create weights matrix
-        diffMat = testPoint - xMat[j,:]     #
-        weights[j,j] = exp(diffMat*diffMat.T/(-2.0*k**2))
+def lwlr(testPoint,xArr,yArr,k=1.0): #局部加权线性回归函数。testPoint是待预测样本点，xArr是训练样本特征值矩阵，yArr是训练样本真实标签，k是需要用户指定的参数，与权重值有关，默认设置为1.0
+    xMat = mat(xArr); yMat = mat(yArr).T #输入数据转换为mat矩阵
+    m = shape(xMat)[0] #m为样本数量
+    weights = mat(eye((m))) #初始化权重矩阵weights为单位阵，阶数等于样本点个数，类型为mat
+    for j in range(m):   #遍历数据集，计算每个样本点对应的权重                   #next 2 lines create weights matrix
+        diffMat = testPoint - xMat[j,:]     #计算待预测点testPoint与当前样本的距离diffMat
+        weights[j,j] = exp(diffMat*diffMat.T/(-2.0*k**2))  #使用高斯核，给待预测点附近的点赋予更高的权重:样本点与待预测点距离递增，权重以指数级衰减，输入参数k控制衰减速度
+    #下面5行与OLS一样，使用lwlr公式计算回归系数ws
     xTx = xMat.T * (weights * xMat)
     if linalg.det(xTx) == 0.0:
         print("This matrix is singular, cannot do inverse")
         return
     ws = xTx.I * (xMat.T * (weights * yMat))
-    return testPoint * ws
+    return testPoint * ws #返回待预测点的预测值
 
-def lwlrTest(testArr,xArr,yArr,k=1.0):  #loops over all the data points and applies lwlr to each one
+def lwlrTest(testArr,xArr,yArr,k=1.0):  #在待预测数据集testArr上应用lwlr()计算预测值
     m = shape(testArr)[0]
     yHat = zeros(m)
     for i in range(m):
         yHat[i] = lwlr(testArr[i],xArr,yArr,k)
     return yHat
 
-def lwlrTestPlot(xArr,yArr,k=1.0):  #same thing as lwlrTest except it sorts X first
-    yHat = zeros(shape(yArr))       #easier for plotting
+def lwlrTestPlot(xArr,yArr,k=1.0):  #用lwlr()计算yHat,返回yHat和xCopy用以绘制拟合图像
+    yHat = zeros(shape(yArr))       
     xCopy = mat(xArr)
     xCopy.sort(0)
     for i in range(shape(xArr)[0]):
