@@ -58,52 +58,53 @@ def lwlrTestPlot(xArr,yArr,k=1.0):  #用lwlr()计算yHat,返回yHat和xCopy用�
         yHat[i] = lwlr(xCopy[i],xArr,yArr,k)
     return yHat,xCopy
 
-def rssError(yArr,yHatArr): #yArr and yHatArr both need to be arrays
+def rssError(yArr,yHatArr): #此函数计算预测值yHat的误差，使用平方误差    yArr and yHatArr both need to be arrays
     return ((yArr-yHatArr)**2).sum()
 
-def ridgeRegres(xMat,yMat,lam=0.2):
+def ridgeRegres(xMat,yMat,lam=0.2): #此函数实现岭回归算法
     xTx = xMat.T*xMat
-    denom = xTx + eye(shape(xMat)[1])*lam
-    if linalg.det(denom) == 0.0:
+    denom = xTx + eye(shape(xMat)[1])*lam #xTx+lambda*I :单位矩阵I是型为nxn的方阵，n是样本特征数量，使得矩阵denom可逆
+    if linalg.det(denom) == 0.0: #计算矩阵denom行列式并判断是否为0，若为0则直接退出
         print("This matrix is singular, cannot do inverse")
         return
-    ws = denom.I * (xMat.T*yMat)
-    return ws
+    ws = denom.I * (xMat.T*yMat) #denom行列式非0，按岭回归中公式计算回归系数ws
+    return ws #返回岭回归系数
     
-def ridgeTest(xArr,yArr):
-    xMat = mat(xArr); yMat=mat(yArr).T
-    yMean = mean(yMat,0)
-    yMat = yMat - yMean     #to eliminate X0 take mean off of Y
+def ridgeTest(xArr,yArr): #数据标准化处理后，适用岭回归计算回归系数
+    xMat = mat(xArr); yMat=mat(yArr).T #数据转换为mat类型
+    yMean = mean(yMat,0) #求样本标签值y的均值。mean(yMat,0)表示压缩行，对各列求均值
+    yMat = yMat - yMean     #yMat中所有数据减去均值，原始yMat数据中心化，转换后的yMat均值为0
     #regularize X's
-    xMeans = mean(xMat,0)   #calc mean then subtract it off
-    xVar = var(xMat,0)      #calc variance of Xi then divide by it
-    xMat = (xMat - xMeans)/xVar
-    numTestPts = 30
-    wMat = zeros((numTestPts,shape(xMat)[1]))
-    for i in range(numTestPts):
-        ws = ridgeRegres(xMat,yMat,exp(i-10))
-        wMat[i,:]=ws.T
-    return wMat
+    xMeans = mean(xMat,0)   #对X矩阵按列求均值。mean(xMat,0)表示压缩行，对各列求均值     
+    xVar = var(xMat,0)      #对X矩阵按列求方差。var()函数用于求方差         
+    xMat = (xMat - xMeans)/xVar #原始xMat数据标准化。标准化过程：将所有数据减去平均值后再除以方差，调整得到的数据集均值为0，方差为1
+    numTestPts = 30 #numTestPts控制lambda取值
+    wMat = zeros((numTestPts,shape(xMat)[1])) #初始化30xn的系数矩阵
+    for i in range(numTestPts): #exp(i-10)为30个不同的lambda取值，以指数级变化
+        ws = ridgeRegres(xMat,yMat,exp(i-10)) #调用岭回归算法计算回归系数ws
+        wMat[i,:]=ws.T #系数向量ws存入系数矩阵
+    return wMat #返回系数矩阵
 
-def regularize(xMat):#regularize by columns
-    inMat = xMat.copy()
-    inMeans = mean(inMat,0)   #calc mean then subtract it off
-    inVar = var(inMat,0)      #calc variance of Xi then divide by it
-    inMat = (inMat - inMeans)/inVar
-    return inMat
+def regularize(xMat): #此函数用于对输入矩阵xMat按列正则化
+    inMat = xMat.copy()  #获取输入的副本
+    inMeans = mean(inMat,0)   #对xMat按列求均值。mean(inMat,0)表示压缩行，对各列求均值
+    inVar = var(inMat,0)      #对xMat按列求方差。var()函数用于求方差
+    inMat = (inMat - inMeans)/inVar #按列将数据减去平均值后再除以方差，调整得到的数据集均值为0，方差为1
+    return inMat #返回正则化后的样本特征值矩阵
 
-def stageWise(xArr,yArr,eps=0.01,numIt=100):
-    xMat = mat(xArr); yMat=mat(yArr).T
-    yMean = mean(yMat,0)
-    yMat = yMat - yMean     #can also regularize ys but will get smaller coef
-    xMat = regularize(xMat)
-    m,n=shape(xMat)
+def stageWise(xArr,yArr,eps=0.01,numIt=100): #此函数前向逐步回归。xArr,yArr：输入特征值矩阵和标签向量；eps表示每次迭代需要调整的步长；numIt表示迭代次数
+    xMat = mat(xArr); yMat=mat(yArr).T #数据转换为mat类型
+    yMean = mean(yMat,0) #求样本标签值y的均值。mean(yMat,0)表示压缩行，对各列求均值
+    yMat = yMat - yMean     #原始yMat数据中心化，转换后的yMat均值为0。也可以正则化      can also regularize ys but will get smaller coef
+    xMat = regularize(xMat) #调用regularize()正则化输入矩阵
+    m,n=shape(xMat) #获取输入矩阵的行、列值
     returnMat = zeros((numIt,n)) #testing code remove
-    ws = zeros((n,1)); wsTest = ws.copy(); wsMax = ws.copy()
-    for i in range(numIt):
-        print(ws.T)
+    ws = zeros((n,1)); wsTest = ws.copy(); wsMax = ws.copy() #为实现贪心算法建立ws的两份副本
+    #贪心算法在所有特征上运行两次for循环，分别计算增加或减少该特征对误差的影响，初试误差设置为无穷，通过与所有误差比较后取最小
+    for i in range(numIt): #
+        print(ws.T) #打印当前系数向量ws
         lowestError = inf; 
-        for j in range(n):
+        for j in range(n): #遍历样本点的每个特征
             for sign in [-1,1]:
                 wsTest = ws.copy()
                 wsTest[j] += eps*sign

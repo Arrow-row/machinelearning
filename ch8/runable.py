@@ -46,6 +46,7 @@ print(ralateRate)
 """
 '''
 
+"""
 #8.2
 #不同k值下对xArr[0]的估计
 xArr,yArr=regression.loadDataSet('ex0.txt') 
@@ -69,5 +70,23 @@ yHat,xCopy=regression.lwlrTestPlot(xArr,yArr,k=0.01)
 ax.plot(xCopy[:,1],yHat,'red',label='lwlr line')
 plt.xlabel('x') 
 plt.ylabel('y')
+plt.legend()
+plt.show()
+"""
+
+#8.4.1
+abX,abY=regression.loadDataSet('abalone.txt')
+#print(abX[4176])
+#print(shape(abX),shape(abY)) 
+ridgeWeights,lamMat=regression.ridgeTest(abX,abY) #调用ridgeTest()得到30个不同lambda对应的回归系数
+#print(shape(ridgeWeights),shape(lamMat))
+
+#绘制回归系数与log(lambda)关系图
+fig=plt.figure()
+ax=fig.add_subplot(111)
+for i in range(shape(ridgeWeights)[1]):
+	ax.plot(lamMat,ridgeWeights[:,i],label='w%d'%(i+1))
+plt.xlabel('ln(lambda)')
+plt.ylabel('ws')
 plt.legend()
 plt.show()
