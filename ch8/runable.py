@@ -73,7 +73,7 @@ plt.ylabel('y')
 plt.legend()
 plt.show()
 """
-
+"""
 #8.4.1
 abX,abY=regression.loadDataSet('abalone.txt')
 #print(abX[4176])
@@ -90,3 +90,18 @@ plt.xlabel('ln(lambda)')
 plt.ylabel('ws')
 plt.legend()
 plt.show()
+"""
+
+#8.4.3
+xArr,yArr=regression.loadDataSet('abalone.txt')
+#regression.stageWise(xArr,yArr,0.01,200) #eps为步长，numIt为步数。eps=0.01,numIt=200
+#regression.stageWise(xArr,yArr,0.001,5000) #eps=0.001,numIt=5000
+#regression.stageWise(xArr,yArr,0.005,1000) #eps=0.005,numIt=1000
+xMat=mat(xArr)
+yMat=mat(yArr).T
+xMat=regression.regularize(xMat)
+yM=mean(yMat,0)
+yMat=yMat-yM
+weights=regression.standRegres(xMat,yMat.T)
+print(weights.T)
+

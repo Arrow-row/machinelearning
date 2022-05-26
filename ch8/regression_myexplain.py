@@ -18,7 +18,7 @@ def loadDataSet(fileName):      #本函数从文件中解析由'\t'分隔的浮�
         labelMat.append(float(curLine[-1])) #将curLine中最后一个元素转换为浮点型数据后添加到labelMat,形成样本标签向量
     return dataMat,labelMat #返回特征值矩阵和样本标签
 
-def standRegres(xArr,yArr): #本函数用于计算最佳拟合直线，xArr,yArr分别是loadDataSet()解析出的样本矩阵和标签向量
+def standRegres(xArr,yArr): #本函数用于计算普通最小二乘的最佳拟合直线，返回的是回归系数向量。xArr,yArr分别是loadDataSet()解析出的样本矩阵和标签向量
     xMat = mat(xArr) #X矩阵：list转换为matrix
     yMat = mat(yArr).T #Y向量：list转换为matrix并转置为列向量
     xTx = xMat.T*xMat #计算X^T*X
@@ -58,7 +58,7 @@ def lwlrTestPlot(xArr,yArr,k=1.0):  #用lwlr()计算yHat,返回yHat和xCopy用�
         yHat[i] = lwlr(xCopy[i],xArr,yArr,k)
     return yHat,xCopy
 
-def rssError(yArr,yHatArr): #此函数计算预测值yHat的误差，使用平方误差    yArr and yHatArr both need to be arrays
+def rssError(yArr,yHatArr): #此函数计算预测值yHat与真实值之间的误差，使用平方误差。输入矩阵类型须为array     yArr and yHatArr both need to be arrays
     return ((yArr-yHatArr)**2).sum()
 
 def ridgeRegres(xMat,yMat,lam=0.2): #此函数实现岭回归算法
@@ -92,30 +92,31 @@ def regularize(xMat): #此函数用于对输入矩阵xMat按列正则化
     inMat = (inMat - inMeans)/inVar #按列将数据减去平均值后再除以方差，调整得到的数据集均值为0，方差为1
     return inMat #返回正则化后的样本特征值矩阵
 
-def stageWise(xArr,yArr,eps=0.01,numIt=100): #此函数前向逐步回归。xArr,yArr：输入特征值矩阵和标签向量；eps表示每次迭代需要调整的步长；numIt表示迭代次数
+def stageWise(xArr,yArr,eps=0.01,numIt=100): #此函数实现前向逐步回归算法。xArr,yArr：输入特征值矩阵和标签向量；eps表示每次迭代需要调整的步长；numIt表示迭代次数,也就是步数，默认100
     xMat = mat(xArr); yMat=mat(yArr).T #数据转换为mat类型
     yMean = mean(yMat,0) #求样本标签值y的均值。mean(yMat,0)表示压缩行，对各列求均值
     yMat = yMat - yMean     #原始yMat数据中心化，转换后的yMat均值为0。也可以正则化      can also regularize ys but will get smaller coef
-    xMat = regularize(xMat) #调用regularize()正则化输入矩阵
+    xMat = regularize(xMat) #调用regularize()使输入矩阵正则化
     m,n=shape(xMat) #获取输入矩阵的行、列值
     returnMat = zeros((numIt,n)) #testing code remove
-    ws = zeros((n,1)); wsTest = ws.copy(); wsMax = ws.copy() #为实现贪心算法建立ws的两份副本
-    #贪心算法在所有特征上运行两次for循环，分别计算增加或减少该特征对误差的影响，初试误差设置为无穷，通过与所有误差比较后取最小
+    ws = zeros((n,1)); #初始回归系数ws设置为全1
+    wsTest = ws.copy(); wsMax = ws.copy() #为实现贪心算法建立ws的两份副本
+    #贪心算法在所有特征上运行两次for循环，分别计算增加或减少该特征对误差的影响，
     for i in range(numIt): #
         print(ws.T) #打印当前系数向量ws
-        lowestError = inf; 
-        for j in range(n): #遍历样本点的每个特征
-            for sign in [-1,1]:
-                wsTest = ws.copy()
-                wsTest[j] += eps*sign
-                yTest = xMat*wsTest
-                rssE = rssError(yMat.A,yTest.A)
-                if rssE < lowestError:
+        lowestError = inf; #初始误差设置为无穷，通过与所有误差比较后取最小
+        for j in range(n): #遍历样本点的每个特征，n表示样本特征数
+            for sign in [-1,1]: #-1表示特征值增加，1表示减少
+                wsTest = ws.copy() #sign取值1和-1都分别重新建立ws副本，用于测试当前特征j的回归系数改变后对预测误差的影响
+                wsTest[j] += eps*sign #第j个特征系数变化eps*sign。增加或减少取决于sign取值
+                yTest = xMat*wsTest #回归方差计算预测值yTest
+                rssE = rssError(yMat.A,yTest.A) #调用rssError()计算预测值yHat与真实值之间的误差
+                if rssE < lowestError: #若当前误差小于已有的最小误差，以当前值更新最小误差和最佳回归系数
                     lowestError = rssE
                     wsMax = wsTest
-        ws = wsMax.copy()
-        returnMat[i,:]=ws.T
-    return returnMat
+        ws = wsMax.copy() #所有特征遍历完毕，记录本次迭代最终得到的回归系数向量
+        returnMat[i,:]=ws.T #本次迭代得到的回归系数向量转置后存入返回矩阵的第i行
+    return returnMat #返回系数矩阵returnMat
 
 #def scrapePage(inFile,outFile,yr,numPce,origPrc):
 #    from BeautifulSoup import BeautifulSoup
@@ -147,14 +148,14 @@ def stageWise(xArr,yArr,eps=0.01,numIt=100): #此函数前向逐步回归。xArr
 #    fw.close()
     
 from time import sleep
-import json
-import urllib.request
-def searchForSet(retX, retY, setNum, yr, numPce, origPrc):
-    sleep(10)
-    myAPIstr = 'AIzaSyD2cR2KFyx12hXu6PFU-wrWot3NXvko8vY'
+import json #python提供的JSON解析模块
+import urllib.request #urllib.request是用于打开URL的可扩展库，定义了适用于在各种复杂情况下打开 URL（主要为 HTTP）的函数和类 --- 例如基本认证、摘要认证、重定向、cookies 及其它
+def searchForSet(retX, retY, setNum, yr, numPce, origPrc): #此函数用于获取网页数据(购物信息)。
+    sleep(10)  #sleep()方法休眠10sec，防止短时间内有过多API调用
+    myAPIstr = 'AIzaSyD2cR2KFyx12hXu6PFU-wrWot3NXvko8vY' #访问url需要的sk
     searchURL = 'https://www.googleapis.com/shopping/search/v1/public/products?key=%s&country=US&q=lego+%d&alt=json' % (myAPIstr, setNum)
-    pg = urllib.request.urlopen(searchURL)
-    retDict = json.loads(pg.read())
+    pg = urllib.request.urlopen(searchURL) #打开统一资源定位符，返回http.client.HTTPResponse对象给pg
+    retDict = json.loads(pg.read()) #read()读取网页内容，json.loads()将已编码的 JSON 字符串解码为 Python 对象
     for i in range(len(retDict['items'])):
         try:
             currItem = retDict['items'][i]
