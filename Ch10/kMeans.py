@@ -5,39 +5,43 @@ k Means Clustering for Ch10 of Machine Learning in Action
 '''
 from numpy import *
 
-def loadDataSet(fileName):      #general function to parse tab -delimited floats
-    dataMat = []                #assume last column is target value
+def loadDataSet(fileName):     #从文件中解析数据，转化为flout类型，存入矩阵dataMat
+    dataMat = []                
     fr = open(fileName)
     for line in fr.readlines():
+        #print(type(line),len(line),line[0],line[1],line)  #<class 'str'> 20 - 4 -4.905566  -2.911070
         curLine = line.strip().split('\t')
-        fltLine = list(map(float,curLine)) #map all elements to float()
-        dataMat.append(fltLine)
-    return dataMat
+        #print(type(curLine),len(curLine),curLine[0],curLine[1],curLine) #<class 'list'> 2 -4.905566 -2.911070 ['-4.905566', '-2.911070']
+        fltLine = list(map(float,curLine)) #列表字符串元素转换为float类型 
+        #print(type(fltLine),len(fltLine),fltLine[0],fltLine[1],fltLine) #<class 'list'> 2 -4.905566 -2.91107 [-4.905566, -2.91107]
+        dataMat.append(fltLine) #数据行以列表存入dataMat
+    return dataMat #返回数据矩阵
 
 def distEclud(vecA, vecB):
-    return sqrt(sum(power(vecA - vecB, 2))) #la.norm(vecA-vecB)
+    return sqrt(sum(power(vecA - vecB, 2))) #计算两向量的欧式距离，各分量距离的平方和再开方   la.norm(vecA-vecB)
 
-def randCent(dataSet, k):
-    n = shape(dataSet)[1]
-    centroids = mat(zeros((k,n)))#create centroid mat
-    for j in range(n):#create random cluster centers, within bounds of each dimension
-        minJ = min(dataSet[:,j]) 
-        rangeJ = float(max(dataSet[:,j]) - minJ)
-        centroids[:,j] = mat(minJ + rangeJ * random.rand(k,1))
-    return centroids
+def randCent(dataSet, k): #为数据集构建k个随机质心
+    n = shape(dataSet)[1] #n为样本特征个数
+    centroids = mat(zeros((k,n))) #初始化k个质心向量组成的kxn矩阵   create centroid mat
+    for j in range(n): #遍历n个特征    create random cluster centers, within bounds of each dimension
+        minJ = min(dataSet[:,j]) #取第j个特征的最小值minJ
+        rangeJ = float(max(dataSet[:,j]) - minJ) #求j的特征值跨度范围rangeJ
+        centroids[:,j] = mat(minJ + rangeJ * random.rand(k,1)) #rand函数根据给定维度(k,1)生成[0,1)之间的数据，包含0，不包含1；生成的数据类型为numpy.ndarray，可直接与数值相加，生成特征j的介于最大值、最小值直接的k个特征值，并形成kx1向量;最后转换为mat类存入centroids
+    return centroids #返回k个随机质心组成的矩阵centroids
     
-def kMeans(dataSet, k, distMeas=distEclud, createCent=randCent):
-    m = shape(dataSet)[0]
-    clusterAssment = mat(zeros((m,2)))#create mat to assign data points 
+def kMeans(dataSet, k, distMeas=distEclud, createCent=randCent): #kMeans算法实现。dataSet:待处理数据集,k:簇的数目,distMeas:样本距离计算函数的引用,createCent:随机质心构建函数的引用
+    m = shape(dataSet)[0] #m为数据集dataSet中样本个数
+    clusterAssment = mat(zeros((m,2)))#mx2的矩阵，用于数据点归类     create mat to assign data points 
                                       #to a centroid, also holds SE of each point
-    centroids = createCent(dataSet, k)
-    clusterChanged = True
-    while clusterChanged:
+    centroids = createCent(dataSet, k) #调用createCent(),构建随机质心矩阵centroids
+    clusterChanged = True #clusterChanged：迭代停止标识，初始化为True
+    while clusterChanged: #若簇中数据点分配结果不再改变(clusterChanged = False)，表示聚类完成，停止迭代,否则继续
         clusterChanged = False
-        for i in range(m):#for each data point assign it to the closest centroid
-            minDist = inf; minIndex = -1
-            for j in range(k):
-                distJI = distMeas(centroids[j,:],dataSet[i,:])
+        for i in range(m):#遍历数据集中样本点（为找到距离每个点最近的质心）        for each data point assign it to the closest centroid
+            minDist = inf #最小距离初始化为无穷
+            minIndex = -1 #最近质心点索引初始化为-1
+            for j in range(k): #遍历质心，调用distMeas()计算样本i到质心j之间的距离，
+                distJI = distMeas(centroids[j,:],dataSet[i,:]) 
                 if distJI < minDist:
                     minDist = distJI; minIndex = j
             if clusterAssment[i,0] != minIndex: clusterChanged = True
