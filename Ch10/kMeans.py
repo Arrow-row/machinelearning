@@ -46,40 +46,40 @@ def kMeans(dataSet, k, distMeas=distEclud, createCent=randCent): #kMeans算法�
                     minDist = distJI; minIndex = j
             if clusterAssment[i,0] != minIndex: clusterChanged = True #样本点i的已有类别与当前计算出的类别不相等，则clusterChanged标识为True，表示需要继续迭代。只要数据集中有一个样本点的类别改变，迭代就会继续
             clusterAssment[i,:] = minIndex,minDist**2 #将当前计算出的最近质心索引、对应的最小距离平方记录于归类矩阵clusterAssment
-        print(centroids) #打印当前质心矩阵
+        #print(centroids) #打印当前质心矩阵
         for cent in range(k):#数据集中样本点的类别全部更新之后，用新的聚类情况重新计算质心矩阵 recalculate centroids
             ptsInClust = dataSet[nonzero(clusterAssment[:,0].A==cent)[0]]#通过数组过滤来获取类别cent中的所有样本点，ptsInClust是类别cent中的样本形成的矩阵     get all the point in this cluster
             centroids[cent,:] = mean(ptsInClust, axis=0) #mean(ptsInClust, axis=0)：样本矩阵ptsInClust中的向量按列求均值，得到的值作为质心cent的新坐标。axis = 0表示沿矩阵的列方向进行均值计算       assign centroid to mean 
     return centroids, clusterAssment #返回聚类完成后的质心矩阵和样本点分类结果
 
-def biKmeans(dataSet, k, distMeas=distEclud): #二分kMeans算法
+def biKmeans(dataSet, k, distMeas=distEclud): #二分kMeans算法。dataSet:待处理数据集,k:簇的数目,distMeas:样本距离计算函数的引用
     m = shape(dataSet)[0] #样本点个数
-    clusterAssment = mat(zeros((m,2)))  #mx2的矩阵，用于辅助数据点归类。第1列为数据点类别，第2列是数据点到最近质心的距离的平方
-    centroid0 = mean(dataSet, axis=0).tolist()[0]
+    clusterAssment = mat(zeros((m,2)))  #mx2的矩阵，用于辅助数据点归类。第1列为数据集中每个点的簇分配结果，第2列是数据点到最近质心的距离的平方(平方误差)
+    centroid0 = mean(dataSet, axis=0).tolist()[0] #计算整个样本集的质心：样本点按列求均值，转换为列表
     centList =[centroid0] #create a list with one centroid
-    for j in range(m):#calc initial Error
+    for j in range(m):#遍历数据集中所有样本点，调用误差计算函数distMeas()计算每个样本点到质心的平方误差(初始误差)
         clusterAssment[j,1] = distMeas(mat(centroid0), dataSet[j,:])**2
-    while (len(centList) < k):
-        lowestSSE = inf
-        for i in range(len(centList)):
-            ptsInCurrCluster = dataSet[nonzero(clusterAssment[:,0].A==i)[0],:]#get the data points currently in cluster i
-            centroidMat, splitClustAss = kMeans(ptsInCurrCluster, 2, distMeas)
-            sseSplit = sum(splitClustAss[:,1])#compare the SSE to the currrent minimum
-            sseNotSplit = sum(clusterAssment[nonzero(clusterAssment[:,0].A!=i)[0],1])
+    while (len(centList) < k): #while循环用于划分簇
+        lowestSSE = inf #数据集中所有样本点最小平方误差之和lowestSSE初始化为无穷
+        for i in range(len(centList)):#遍历簇列表中每一个簇
+            ptsInCurrCluster = dataSet[nonzero(clusterAssment[:,0].A==i)[0],:]#获取当前第i个簇中的数据点，组成数据集ptsInCurrCluster   
+            centroidMat, splitClustAss = kMeans(ptsInCurrCluster, 2, distMeas)#调用kMeans()将数据集ptsInCurrCluster分成2个簇，返回2个簇的质心矩阵、样本点分配矩阵(样本点分配结果、距离质心平方误差)
+            sseSplit = sum(splitClustAss[:,1])#计算二分后所得的样本平方误差和   compare the SSE to the currrent minimum
+            sseNotSplit = sum(clusterAssment[nonzero(clusterAssment[:,0].A!=i)[0],1])#计算非第i个簇的数据点的平方误差和
             print("sseSplit, and notSplit: ",sseSplit,sseNotSplit)
-            if (sseSplit + sseNotSplit) < lowestSSE:
+            if (sseSplit + sseNotSplit) < lowestSSE: #若第i个簇中的数据点二分后，数据集所有样本的误差平方和小于初始值，保存此次划分结果
                 bestCentToSplit = i
-                bestNewCents = centroidMat
+                bestNewCents = centroidMat #centroidMat是第i个簇二分后所得的质心向量矩阵，2xn型
                 bestClustAss = splitClustAss.copy()
                 lowestSSE = sseSplit + sseNotSplit
-        bestClustAss[nonzero(bestClustAss[:,0].A == 1)[0],0] = len(centList) #change 1 to 3,4, or whatever
+        bestClustAss[nonzero(bestClustAss[:,0].A == 1)[0],0] = len(centList) #更新簇的分配结果   change 1 to 3,4, or whatever
         bestClustAss[nonzero(bestClustAss[:,0].A == 0)[0],0] = bestCentToSplit
         print('the bestCentToSplit is: ',bestCentToSplit)
         print('the len of bestClustAss is: ', len(bestClustAss))
         centList[bestCentToSplit] = bestNewCents[0,:].tolist()[0]#replace a centroid with two best centroids 
         centList.append(bestNewCents[1,:].tolist()[0])
         clusterAssment[nonzero(clusterAssment[:,0].A == bestCentToSplit)[0],:]= bestClustAss#reassign new clusters, and SSE
-    return mat(centList), clusterAssment
+    return mat(centList), clusterAssment #返回聚类完成后的质心矩阵和样本点分配结果
 
 import urllib
 import json
