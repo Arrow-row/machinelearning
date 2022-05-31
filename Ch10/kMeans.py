@@ -31,7 +31,7 @@ def randCent(dataSet, k): #为数据集构建k个随机质心
     
 def kMeans(dataSet, k, distMeas=distEclud, createCent=randCent): #kMeans算法实现。dataSet:待处理数据集,k:簇的数目,distMeas:样本距离计算函数的引用,createCent:随机质心构建函数的引用
     m = shape(dataSet)[0] #m为数据集dataSet中样本个数
-    clusterAssment = mat(zeros((m,2)))#mx2的矩阵，用于数据点归类     create mat to assign data points 
+    clusterAssment = mat(zeros((m,2)))#mx2的矩阵，用于辅助数据点归类。第1列为数据点类别，第2列是数据点到最近质心的距离的平方     create mat to assign data points 
                                       #to a centroid, also holds SE of each point
     centroids = createCent(dataSet, k) #调用createCent(),构建随机质心矩阵centroids
     clusterChanged = True #clusterChanged：迭代停止标识，初始化为True
@@ -40,21 +40,21 @@ def kMeans(dataSet, k, distMeas=distEclud, createCent=randCent): #kMeans算法�
         for i in range(m):#遍历数据集中样本点（为找到距离每个点最近的质心）        for each data point assign it to the closest centroid
             minDist = inf #最小距离初始化为无穷
             minIndex = -1 #最近质心点索引初始化为-1
-            for j in range(k): #遍历质心，调用distMeas()计算样本i到质心j之间的距离，
+            for j in range(k): #遍历质心，调用distMeas()计算样本i(dataSet[i,:])到每个质心j(centroids[j,:])之间的距离
                 distJI = distMeas(centroids[j,:],dataSet[i,:]) 
-                if distJI < minDist:
+                if distJI < minDist: #如果本次计算得到的距离小于前次，则更新样本质心最小距离minDist和最近质心索引minIndex
                     minDist = distJI; minIndex = j
-            if clusterAssment[i,0] != minIndex: clusterChanged = True
-            clusterAssment[i,:] = minIndex,minDist**2
-        print(centroids)
-        for cent in range(k):#recalculate centroids
-            ptsInClust = dataSet[nonzero(clusterAssment[:,0].A==cent)[0]]#get all the point in this cluster
-            centroids[cent,:] = mean(ptsInClust, axis=0) #assign centroid to mean 
-    return centroids, clusterAssment
+            if clusterAssment[i,0] != minIndex: clusterChanged = True #样本点i的已有类别与当前计算出的类别不相等，则clusterChanged标识为True，表示需要继续迭代。只要数据集中有一个样本点的类别改变，迭代就会继续
+            clusterAssment[i,:] = minIndex,minDist**2 #将当前计算出的最近质心索引、对应的最小距离平方记录于归类矩阵clusterAssment
+        print(centroids) #打印当前质心矩阵
+        for cent in range(k):#数据集中样本点的类别全部更新之后，用新的聚类情况重新计算质心矩阵 recalculate centroids
+            ptsInClust = dataSet[nonzero(clusterAssment[:,0].A==cent)[0]]#通过数组过滤来获取类别cent中的所有样本点，ptsInClust是类别cent中的样本形成的矩阵     get all the point in this cluster
+            centroids[cent,:] = mean(ptsInClust, axis=0) #mean(ptsInClust, axis=0)：样本矩阵ptsInClust中的向量按列求均值，得到的值作为质心cent的新坐标。axis = 0表示沿矩阵的列方向进行均值计算       assign centroid to mean 
+    return centroids, clusterAssment #返回聚类完成后的质心矩阵和样本点分类结果
 
-def biKmeans(dataSet, k, distMeas=distEclud):
-    m = shape(dataSet)[0]
-    clusterAssment = mat(zeros((m,2)))
+def biKmeans(dataSet, k, distMeas=distEclud): #二分kMeans算法
+    m = shape(dataSet)[0] #样本点个数
+    clusterAssment = mat(zeros((m,2)))  #mx2的矩阵，用于辅助数据点归类。第1列为数据点类别，第2列是数据点到最近质心的距离的平方
     centroid0 = mean(dataSet, axis=0).tolist()[0]
     centList =[centroid0] #create a list with one centroid
     for j in range(m):#calc initial Error
