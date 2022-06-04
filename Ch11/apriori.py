@@ -47,7 +47,7 @@ def aprioriGen(Lk, k): #此函数在频繁项集Lk上创建Ck项集。输入参�
             #print(L1)
             #print(L2)
             if L1==L2: #if first k-2 elements are equal
-                retList.append(Lk[i] | Lk[j]) #set union
+                retList.append(Lk[i] | Lk[j]) #两个集合求并使用|
     return retList #返回Ck项集列表
 
 def apriori(dataSet, minSupport = 0.5): #Apriori算法实现。
@@ -93,16 +93,18 @@ def calcConf(freqSet, H, supportData, brl, minConf=0.7): #计算关联规则的�
             brl.append((freqSet-conseq, conseq, conf))
             prunedH.append(conseq) 
             #print('prunedH:',prunedH) #prunedH: [frozenset({2}), frozenset({5})]
-    return prunedH #返回满足最小可信度的规则组成元素列表
+    return prunedH #返回满足最小可信度的规则的组成元素列表
 
-def rulesFromConseq(freqSet, H, supportData, brl, minConf=0.7): 
+def rulesFromConseq(freqSet, H, supportData, brl, minConf=0.7): #从初始项集生成更多关联规则
     m = len(H[0]) 
-    print('H:',H)
-    print('m',m)
+    #print('H:',H) # H: [frozenset({2}), frozenset({3}), frozenset({5})]
+    #print('m',m)  
     if (len(freqSet) > (m + 1)): #try further merging
-        Hmp1 = aprioriGen(H, m+1)#create Hm+1 new candidates
-        Hmp1 = calcConf(freqSet, Hmp1, supportData, brl, minConf)
-        if (len(Hmp1) > 1):    #need at least two sets to merge
+        Hmp1 = aprioriGen(H, m+1)#调用apriori(),使用频繁项集freqSet中的元素创建m+1项集      create Hm+1 new candidates
+        #print('Hmp1:',Hmp1) #Hmp1: [frozenset({2, 3}), frozenset({2, 5}), frozenset({3, 5})]
+        Hmp1 = calcConf(freqSet, Hmp1, supportData, brl, minConf) #调用calcConf() 筛选置信度大于阈值的关联规则
+        #print('Hmp1:',Hmp1)
+        if (len(Hmp1) > 1):    #筛选后Hmp1中符合最小支持度要求的关联规则不止一条，继续调用rulesFromConseq()尝试合并规则Hmp1中的规则     need at least two sets to merge
             rulesFromConseq(freqSet, Hmp1, supportData, brl, minConf)
             
 def pntRules(ruleList, itemMeaning):
@@ -125,7 +127,7 @@ def getActionIds():
     for line in fr.readlines():
         billNum = int(line.split('\t')[0])
         try:
-            billDetail = votesmart.votes.getBill(billNum) #api call
+            billDetail = votesmart.votes.getBill(billNum) #api call  #API在python3下不能运行
             for action in billDetail.actions:
                 if action.level == 'House' and \
                 (action.stage == 'Passage' or action.stage == 'Amendment Vote'):
